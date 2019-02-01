@@ -23,7 +23,12 @@
             <AppBarButton Icon="Up" Command="{Binding TakeOffCommand}" Label="Take Off" />
             <AppBarButton Icon="Download" Command="{Binding LandingCommand}" Label="Landing" />
             <CommandBar.Content>
-                <TextBlock Text="{Binding CurrentStateText}" Margin="24,12" />
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Battery: " Margin="24,12" />
+                    <TextBlock Text="{Binding ChargeRemainingInPercentText}" Margin="6,12" />
+                    <TextBlock Text="State: " Margin="24,12" />
+                    <TextBlock Text="{Binding CurrentStateText}" Margin="6,12" />
+                </StackPanel>
             </CommandBar.Content>
         </CommandBar>
 

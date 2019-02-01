@@ -126,6 +126,19 @@
 
         public static PropertyData CurrentStateTextProperty = RegisterProperty(nameof(CurrentStateText), typeof(string));
 
+        public int ChargeRemainingInPercent
+        {
+            get => GetValue<int>(ChargeRemainingInPercentProperty);
+            set
+            {
+                SetValue(ChargeRemainingInPercentProperty, value);
+                RaisePropertyChanged(nameof(ChargeRemainingInPercentText));
+            }
+        }
+        public static PropertyData ChargeRemainingInPercentProperty = RegisterProperty(nameof(ChargeRemainingInPercent), typeof(int));
+
+        public string ChargeRemainingInPercentText => $"{ChargeRemainingInPercent}%";
+
         public float Throttle
         {
             get => GetValue<float>(ThrottleProperty);
@@ -339,6 +352,19 @@
             });
         }
 
+        async Task UpdateChargeRemaining()
+        {
+            var chargeRemaining = await GetBatteryHandler().GetChargeRemainingInPercentAsync();
+
+            if (chargeRemaining.value.HasValue)
+            {
+                await CallOnUiThreadAsync(() =>
+                {
+                    ChargeRemainingInPercent = chargeRemaining.value.Value.value;
+                });
+            }
+        }
+
         int[] VideoParserVideoAssitantInfoParserHandle(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
@@ -348,17 +374,22 @@
 
         FlightControllerHandler GetFlightControllerHandler()
         {
-            return DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(PRODUCT_ID, PRODUCT_INDEX);
         }
 
         CameraHandler GetCameraHandler()
         {
-            return DJISDKManager.Instance.ComponentManager.GetCameraHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetCameraHandler(PRODUCT_ID, PRODUCT_INDEX);
         }
 
         GimbalHandler GetGimbalHandler()
         {
-            return DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetGimbalHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
+        BatteryHandler GetBatteryHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetBatteryHandler(PRODUCT_ID, PRODUCT_INDEX);
         }
 
         #endregion Components Handler
