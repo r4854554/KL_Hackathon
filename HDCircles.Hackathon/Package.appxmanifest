@@ -27,10 +27,5 @@
   </Applications>
   <Capabilities>
     <Capability Name="internetClient" />
-    <DeviceCapability Name="serialcommunication">
-      <Device Id="vidpid:2ca3 001f">
-        <Function Type="name:serialPort" />
-      </Device>
-    </DeviceCapability>
   </Capabilities>
 </Package>

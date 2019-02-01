@@ -32,6 +32,15 @@ namespace HDCircles.Hackathon
         {
             this.InitializeComponent();
             this.Suspending += OnSuspending;
+
+            UnhandledException += App_UnhandledException;
+        }
+
+        private void App_UnhandledException(object sender, Windows.UI.Xaml.UnhandledExceptionEventArgs e)
+        {
+            var ex = e.Exception;
+
+            Console.WriteLine(ex.ToString());
         }
 
         /// <summary>

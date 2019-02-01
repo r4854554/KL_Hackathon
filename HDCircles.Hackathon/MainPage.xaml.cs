@@ -43,27 +43,12 @@ namespace HDCircles.Hackathon
         {
             var vm = ((MainPage)sender)._viewModel;
 
+            vm.MainPage = this;
             vm.SwapChainPanel = FpvSwapChainPanel;
-
+            
             _commandManager.ExecuteCommand(Commands.MainPageLoaded);
 
             Loaded -= MainPage_Loaded;
-        }
-
-        private void Page_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
-        {
-            var vm = ((MainPage)sender)._viewModel;
-            var key = e.Key;
-
-            vm.KeyDownCommand.Execute(key);
-        }
-
-        private void Page_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
-        {
-            var vm = ((MainPage)sender)._viewModel;
-            var key = e.Key;
-
-            vm.KeyUpCommand.Execute(key);
         }
     }
 }

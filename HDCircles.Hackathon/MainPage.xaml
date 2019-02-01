@@ -7,12 +7,9 @@
     xmlns:vm="using:HDCircles.Hackathon.ViewModels"
     mc:Ignorable="d" 
     
-    d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}"
-    
-    KeyDown="Page_KeyDown"
-    KeyUp="Page_KeyUp">
+    d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}">
 
-    <Grid>
+    <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -20,6 +17,7 @@
         </Grid.RowDefinitions>
 
         <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
+            <AppBarButton Icon="Camera" Command="{Binding TestGimbalCommand}" Label="Test Gimbal Control" />
             <AppBarButton Icon="Refresh" Command="{Binding ResetGimbalCommand}" Label="Reset Gimbal" />
             <AppBarSeparator />
             <AppBarButton Icon="Up" Command="{Binding TakeOffCommand}" Label="Take Off" />
@@ -34,9 +32,11 @@
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
 
                 <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
                 </Grid.ColumnDefinitions>
@@ -46,19 +46,32 @@
                     <TextBlock Text="{Binding RegistrationStateText}" />
                 </StackPanel>
 
-                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Vertical">
+                    <TextBlock Text="Altitude" />
+                    <TextBlock Text="{Binding AltitudeText}" />
                     <TextBlock Text="Attitude" />
-                    <TextBlock Text="Pitch: " />
-                    <TextBlock Text="{Binding Pitch}" />
-                    <TextBlock Text="Roll: " />
-                    <TextBlock Text="{Binding Roll}" />
-                    <TextBlock Text="Yaw: " />
-                    <TextBlock Text="{Binding Yaw}" />
+                    <TextBlock Text="{Binding PitchText}" />
+                    <TextBlock Text="{Binding RollText}" />
+                    <TextBlock Text="{Binding YawText}" />
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="1">
                     <TextBlock Text="Gimbal" />
-                    
+                    <TextBlock Text="{Binding GimbalPitchText}" />
+                    <TextBlock Text="{Binding GimbalRollText}" />
+                    <TextBlock Text="{Binding GimbalYawText}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="2">
+                    <TextBlock Text="Velocity" />
+                    <TextBlock Text="{Binding VelocityXText}" />
+                    <TextBlock Text="{Binding VelocityYText}" />
+                    <TextBlock Text="{Binding VelocityZText}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Orientation="Vertical">
+                    <TextBlock Text="Video Feed" />
+                    <TextBlock Text="{Binding ImageFpsText}" />
                 </StackPanel>
             </Grid>
         </Border>

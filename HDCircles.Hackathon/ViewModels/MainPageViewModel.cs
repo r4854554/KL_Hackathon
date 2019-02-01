@@ -7,6 +7,7 @@
     using DJIVideoParser;
     using System;
     using System.Threading.Tasks;
+    using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
     using Windows.System;
@@ -15,17 +16,23 @@
 
     public class MainPageViewModel : ViewModelBase
     {
+        private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
+
         private const float MAX_JOYSTICK_VALUE = 0.5f;
         private const float MIN_JOYSTICK_VALUE = -0.5f;
         private const float JOYSTICK_THROTTLE_STEP = 0.02f;
         private const float JOYSTICK_ATTITUDE_STEP = 0.05f;
+
+        private const float GIMBAL_ROTATE_STEP = 5f;
 
         private const int PRODUCT_ID = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
 
         private readonly ICommandManager _commandManager;
-        private DJISDKManager _instance;
+        private Timer stateTimer;
+
+        private bool _isInitialized;
 
         /// <summary>
         /// the instance of DJIVideoParser
@@ -39,6 +46,13 @@
         private float pitch = 0.0f;
         private float roll = 0.0f;
         private float yaw = 0.0f;
+
+        private float gimbalPitch = 0.0f;
+        private float gimbalRoll = 0.0f;
+        private float gimbalYaw = 0.0f;
+
+        private DateTime processStart = DateTime.Now;
+        private DateTime imageFpsStart = DateTime.Now;
 
         #region static Methods
 
@@ -61,6 +75,11 @@
 
         #region Properties
 
+        /// <summary>
+        /// the ui component
+        /// </summary>
+        public MainPage MainPage { get; set; }
+
         /// <remark>
         /// will be set at loaded event of the page
         /// </remark>
@@ -69,6 +88,28 @@
         public static CoreDispatcher Dispatcher { get; set; }
 
         public bool IsRegistered { get; set; }
+
+        public double ImageFrameCount
+        {
+            get => GetValue<double>(ImageFrameCountProperty);
+            set
+            {
+                SetValue(ImageFrameCountProperty, value);
+            }
+        }
+        public static PropertyData ImageFrameCountProperty = RegisterProperty(nameof(ImageFrameCount), typeof(double));
+
+        public double ImageFps
+        {
+            get => GetValue<double>(ImageFpsProperty);
+            set
+            {
+                SetValue(ImageFpsProperty, value);
+            }
+        }
+        public static PropertyData ImageFpsProperty = RegisterProperty(nameof(ImageFps), typeof(double));
+
+        public string ImageFpsText => $"fps: {ImageFps:0.0}";
 
         public string RegistrationStateText
         {
@@ -92,26 +133,22 @@
         }
         public static PropertyData ThrottleProperty = RegisterProperty(nameof(Throttle), typeof(float));
 
-        public double Pitch
+        public Attitude Attitude
         {
-            get => GetValue<double>(PitchProperty);
-            set => SetValue(PitchProperty, value);
+            get => GetValue<Attitude>(AttitudeProperty);
+            set
+            {
+                SetValue(AttitudeProperty, value);
+                RaisePropertyChanged(nameof(PitchText));
+                RaisePropertyChanged(nameof(RollText));
+                RaisePropertyChanged(nameof(YawText));
+            }
         }
-        public static PropertyData PitchProperty = RegisterProperty(nameof(Pitch), typeof(double));
+        public static PropertyData AttitudeProperty = RegisterProperty(nameof(Attitude), typeof(Attitude));
 
-        public double Roll
-        {
-            get => GetValue<double>(RollProperty);
-            set => SetValue(RollProperty, value);
-        }
-        public static PropertyData RollProperty = RegisterProperty(nameof(Roll), typeof(double));
-
-        public double Yaw
-        {
-            get => GetValue<double>(YawProperty);
-            set => SetValue(YawProperty, value);
-        }
-        public static PropertyData YawProperty = RegisterProperty(nameof(Yaw), typeof(double));
+        public string PitchText => $"pitch: {Attitude.pitch}";
+        public string RollText => $"roll: {Attitude.roll}";
+        public string YawText => $"yaw: {Attitude.yaw}";
 
         public double VelocityX
         {
@@ -141,21 +178,87 @@
         }
         public static PropertyData CameraTypeProperty = RegisterProperty(nameof(CameraType), typeof(CameraType));
 
+        public Attitude GimbalAttitude
+        {
+            get => GetValue<Attitude>(GimbalAttitudeProperty);
+            set
+            {
+                SetValue(GimbalAttitudeProperty, value);
+                RaisePropertyChanged(nameof(GimbalPitchText));
+                RaisePropertyChanged(nameof(GimbalRollText));
+                RaisePropertyChanged(nameof(GimbalYawText));
+            }
+        }
+
+        public static PropertyData GimbalAttitudeProperty = RegisterProperty(nameof(GimbalAttitude), typeof(Attitude));
+
+        public string GimbalPitchText => $"pitch: {GimbalAttitude.pitch}";
+
+        public string GimbalRollText => $"roll: {GimbalAttitude.roll}";
+
+        public string GimbalYawText => $"yaw: {GimbalAttitude.yaw}";
+
+        public double Altitude
+        {
+            get => GetValue<double>(AltitudeProperty);
+            set
+            {
+                SetValue(AltitudeProperty, value);
+                RaisePropertyChanged(nameof(AltitudeText));
+            }
+        }
+        public static PropertyData AltitudeProperty = RegisterProperty(nameof(Altitude), typeof(double));
+
+        public string AltitudeText => $"height: {Altitude}";
+
+        public Velocity3D Velocity
+        {
+            get => GetValue<Velocity3D>(VelocityProperty);
+            set
+            {
+                SetValue(VelocityProperty, value);
+                RaisePropertyChanged(nameof(VelocityXText));
+                RaisePropertyChanged(nameof(VelocityYText));
+                RaisePropertyChanged(nameof(VelocityZText));
+            }
+        }
+        public static PropertyData VelocityProperty = RegisterProperty(nameof(Velocity), typeof(Velocity3D));
+        
+        public string VelocityXText => $"x: {Velocity.x}";
+        public string VelocityYText => $"y: {Velocity.y}";
+        public string VelocityZText => $"z: {Velocity.z}";
+
+        public bool IsTimerEnabled
+        {
+            get => GetValue<bool>(IsTimerEnabledProperty);
+            set => SetValue(IsTimerEnabledProperty, value);
+        }
+        public static PropertyData IsTimerEnabledProperty = RegisterProperty(nameof(IsTimerEnabled), typeof(bool));
+
         #endregion Properties
 
         public MainPageViewModel(ICommandManager commandManager)
         {
             _commandManager = commandManager;
+            ImageFrameCount = 0;
 
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
             LandingCommand = new TaskCommand(LandingExecute);
             KeyDownCommand = new TaskCommand<VirtualKey>(KeyDownExecute);
             KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
+            ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
+            ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
+            TestGimbalCommand = new TaskCommand(TestGimbalExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
+        }
+
+        private bool IsEqual(float a, float b)
+        {
+            return Math.Abs(a - b) < float.Epsilon;
         }
 
         async Task UpdateCurrentState(string message)
@@ -176,26 +279,86 @@
             }
         }
 
+        async Task UpdateAttitude()
+        {
+            var attitude = await GetFlightControllerHandler().GetAttitudeAsync();
+
+            if (attitude.value.HasValue)
+            {
+                await CallOnUiThreadAsync(() =>
+                {
+                    Attitude = attitude.value.Value;
+                });
+            }
+        }
+
+        async Task UpdateGimbalAttitude()
+        {
+            var attitude = await GetGimbalHandler().GetGimbalAttitudeAsync();
+
+            if (attitude.value.HasValue)
+            {
+                await CallOnUiThreadAsync(() =>
+                {
+                    GimbalAttitude = attitude.value.Value;
+                });
+            }
+        }
+
+        async Task UpdateAltitude()
+        {
+            var altitude = await GetFlightControllerHandler().GetAltitudeAsync();
+
+            if (altitude.value.HasValue)
+            {
+                await CallOnUiThreadAsync(() =>
+                {
+                    Altitude = altitude.value.Value.value;
+                });
+            }
+        }
+
+        async Task UpdateVelocity()
+        {
+            var velocity = await GetFlightControllerHandler().GetVelocityAsync();
+
+            if (velocity.value.HasValue)
+            {
+                await CallOnUiThreadAsync(() =>
+                {
+                    Velocity = velocity.value.Value;
+                });
+            }
+        }
+
+        async Task UpdateVideoFeedFps()
+        {
+            await CallOnUiThreadAsync(() =>
+            {
+                RaisePropertyChanged(nameof(ImageFpsText));
+            });
+        }
+
         int[] VideoParserVideoAssitantInfoParserHandle(byte[] data)
         {
-            return _instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
+            return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
 
         #region Components Handler
 
         FlightControllerHandler GetFlightControllerHandler()
         {
-            return _instance.ComponentManager.GetFlightControllerHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0);
         }
 
         CameraHandler GetCameraHandler()
         {
-            return _instance.ComponentManager.GetCameraHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetCameraHandler(0, 0);
         }
 
         GimbalHandler GetGimbalHandler()
         {
-            return _instance.ComponentManager.GetGimbalHandler(0, 0);
+            return DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0);
         }
 
         #endregion Components Handler
@@ -208,12 +371,12 @@
 
         private async Task MainPageLoadedExecute()
         {
-            _instance = DJISDKManager.Instance;
+            var sdkManager = DJISDKManager.Instance;
 
-            _instance.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            _instance.RegisterApp(APP_KEY);
+            sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
+            sdkManager.RegisterApp(APP_KEY);
 
-            await Task.Delay(1000);
+            await Task.Delay(100);
         }
 
         private async void DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
@@ -229,25 +392,42 @@
 
             await UpdateCurrentState("sdk registered!");
 
+            if (_isInitialized) return;
+
             await CallOnUiThreadAsync(async () =>
             {
+                var rootGrid = MainPage.FindName("RootGrid") as Grid;
+
+                if (rootGrid != null)
+                {
+                    rootGrid.KeyDown += MainPage_KeyDown;
+                    rootGrid.KeyUp += MainPage_KeyUp;
+                }
+
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
-
-                fcHandler.AttitudeChanged += FlightControllerHandler_AttitudeChanged;
+                var gimbalHandler = GetGimbalHandler();
+                
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
                 _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandle);
                 _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
 
-                _instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
+                DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
 
                 cameraHandler.CameraTypeChanged += CameraHandler_CameraTypeChanged;
 
                 var cameraType = await cameraHandler.GetCameraTypeAsync();
 
                 CameraHandler_CameraTypeChanged(null, cameraType.value);
+
+                stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
+                stateTimer.Elapsed += StateTimer_Elapsed;
+                stateTimer.AutoReset = true;
+                stateTimer.Enabled = true;
+
+                _isInitialized = true;
             });
         }
 
@@ -260,7 +440,9 @@
         {
             var fcHandler = GetFlightControllerHandler();
 
-            await fcHandler.StartTakeoffAsync();
+            var result = await fcHandler.StartTakeoffAsync();
+
+            await UpdateCurrentState("take off executed: " + result);
         }
 
         #endregion TakeOffCommand
@@ -348,17 +530,53 @@
                         roll = MAX_JOYSTICK_VALUE;
                     }
                     break;
+                case VirtualKey.T:
+                    gimbalPitch = GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.G:
+                    gimbalPitch = -GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.F:
+                    gimbalRoll = GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.H:
+                    gimbalRoll = -GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.R:
+                    gimbalYaw = GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.Y:
+                    gimbalYaw = -GIMBAL_ROTATE_STEP;
+                    break;
             }
 
             try
             {
-                if (null != _instance)
+                if (null != DJISDKManager.Instance)
                 {
-                    _instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+                    DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+
+                    var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
+                    {
+                        mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
+                        pitch = gimbalPitch,
+                        roll = gimbalRoll,
+                        yaw = gimbalYaw,
+                        pitchIgnored = false,
+                        rollIgnored = true,
+                        yawIgnored = true,
+                        duration = 1
+                    });
+
+                    await UpdateCurrentState("RotateGimbalByAngle: " + result.ToString());
                 }
             }
-            catch (Exception)
-            { }
+            catch (Exception ex)
+            {
+#if DEBUG
+                Console.WriteLine(ex.ToString());
+#endif
+            }
         }
 
         #endregion KeyDown Command
@@ -368,6 +586,8 @@
         public ICommand KeyUpCommand { get; set; }
         private async Task KeyUpExecute(VirtualKey key)
         {
+            var updateGimbal = false;
+
             switch (key)
             {
                 case VirtualKey.W:
@@ -386,17 +606,45 @@
                 case VirtualKey.L:
                     roll = 0;
                     break;
+                case VirtualKey.T:
+                case VirtualKey.G:
+                    gimbalPitch = 0f;
+                    break;
+                case VirtualKey.F:
+                case VirtualKey.H:
+                    gimbalRoll = 0f;
+                    break;
+                case VirtualKey.R:
+                case VirtualKey.Y:
+                    gimbalYaw = 0f;
+                    break;
             }
 
             try
             {
-                if (null != _instance)
+                if (null != DJISDKManager.Instance)
                 {
-                    _instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+                    DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+
+                    await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
+                    {
+                        mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
+                        pitch = gimbalPitch,
+                        roll = gimbalRoll,
+                        yaw = gimbalYaw,
+                        pitchIgnored = false,
+                        rollIgnored = false,
+                        yawIgnored = false,
+                        duration = 0.3
+                    });
                 }
             }
-            catch (Exception)
-            { }
+            catch (Exception ex)
+            {
+#if DEBUG
+                Console.WriteLine(ex.ToString());
+#endif
+            }
         }
 
         #endregion KeyUp Command
@@ -404,7 +652,36 @@
         public ICommand ResetGimbalCommand { get; set; }
         private async Task ResetGimbalExecute()
         {
+            var gimbalHandler = GetGimbalHandler();
+            var resetMsg = new GimbalResetCommandMsg
+            {
+                value = GimbalResetCommand.TOGGLE_PITCH
+            };
 
+            await gimbalHandler.ResetGimbalAsync(resetMsg);
+        }
+
+        public ICommand ResetJoystickCommand { get; set; }
+        private async Task ResetJoystickExecute()
+        {
+            if (null != DJISDKManager.Instance)
+                DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(0f, 0f, 0f, 0f);
+
+            await Task.Delay(20);
+        }
+
+        public ICommand TestGimbalCommand { get; set; }
+        private async Task TestGimbalExecute()
+        {
+            var gimbalHandler = GetGimbalHandler();
+            var param = new GimbalSpeedRotation
+            {
+                pitch = -5f,
+                roll = 0,
+                yaw = 0,
+            };
+
+            var result = await gimbalHandler.RotateBySpeedAsync(param);
         }
 
         #endregion Commands
@@ -427,16 +704,12 @@
         }
 
         private async void FlightControllerHandler_AttitudeChanged(object sender, Attitude? value)
-        {
+        {            
             if (value.HasValue)
             {
                 await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {
-                    var unboxed = value.Value;
-
-                    Pitch = unboxed.pitch;
-                    Roll = unboxed.roll;
-                    Yaw = unboxed.yaw;
+                    Attitude = value.Value;
                 });
             }
         }
@@ -446,9 +719,26 @@
             _videoParser.PushVideoData(PRODUCT_ID, PRODUCT_INDEX, bytes, bytes.Length);
         }
 
-        private void VideoParserVideoDataCallback(byte[] data, int width, int height)
+        private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
             // intended to be empty
+
+            await CallOnUiThreadAsync(() =>
+            {
+                var now = DateTime.Now;
+                var elapsed = now - imageFpsStart;
+
+                if (elapsed >= TimeSpan.FromSeconds(1))
+                {
+                    var n = (imageFpsStart - processStart).TotalSeconds;
+
+                    ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
+                    imageFpsStart = now;
+                    ImageFrameCount = 0;
+                }
+
+                ImageFrameCount += 1;
+            });
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
@@ -470,6 +760,40 @@
                     _videoParser.SetCameraSensor(AircraftCameraType.Others);
                     break;
             }
+        }
+
+        private async void GimbalHandler_GimbalAttitudeChanged(object sender, Attitude? value)
+        {
+            if (value.HasValue)
+            {
+                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+                {
+                    GimbalAttitude = value.Value;
+                });
+            }
+        }
+
+        private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            await UpdateAltitude();
+            await UpdateAttitude();
+            await UpdateVelocity();
+            await UpdateGimbalAttitude();
+            await UpdateVideoFeedFps();
+        }
+
+        private void MainPage_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            var key = e.Key;
+
+            KeyUpCommand.Execute(key);
+        }
+
+        private void MainPage_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
+        {
+            var key = e.Key;
+
+            KeyDownCommand.Execute(key);
         }
 
         #endregion Events
