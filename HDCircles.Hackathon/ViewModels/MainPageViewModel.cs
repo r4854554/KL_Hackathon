@@ -811,6 +811,7 @@
             await UpdateVelocity();
             await UpdateGimbalAttitude();
             await UpdateVideoFeedFps();
+            await UpdateChargeRemaining();
         }
 
         private void MainPage_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
