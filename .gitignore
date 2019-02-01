@@ -261,4 +261,6 @@ __pycache__/
 *.pyc
 
 !DJIVideoParser/ThirdParties/x64
+!DJIVideoParser/ThirdParties/x64/pthread-win32/bin
 !DJIVideoParser/ThirdParties/x86
+!DJIVideoParser/ThirdParties/x86/pthread-win32/bin
