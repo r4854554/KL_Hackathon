@@ -45,6 +45,8 @@ namespace HDCircles.Hackathon
             var commandManger = dependencyResolver.Resolve<ICommandManager>();
 
             commandManger.CreateCommand(Commands.MainPageLoaded);
+            commandManger.CreateCommand(Commands.KeyUp);
+            commandManger.CreateCommand(Commands.KeyDown);
 
             var rootFrame = Window.Current.Content as Frame;
 

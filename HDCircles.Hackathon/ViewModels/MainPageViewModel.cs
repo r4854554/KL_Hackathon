@@ -9,11 +9,17 @@
     using System.Threading.Tasks;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
+    using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
 
     public class MainPageViewModel : ViewModelBase
     {
+        private const float MAX_JOYSTICK_VALUE = 0.5f;
+        private const float MIN_JOYSTICK_VALUE = -0.5f;
+        private const float JOYSTICK_THROTTLE_STEP = 0.02f;
+        private const float JOYSTICK_ATTITUDE_STEP = 0.05f;
+
         private const int PRODUCT_ID = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
@@ -25,6 +31,14 @@
         /// the instance of DJIVideoParser
         /// </summary>
         private Parser _videoParser;
+
+        /// <summary>
+        /// for joystick parameters
+        /// </summary>
+        private float throttle = 0.0f;
+        private float pitch = 0.0f;
+        private float roll = 0.0f;
+        private float yaw = 0.0f;
 
         #region static Methods
 
@@ -135,8 +149,13 @@
 
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
+            LandingCommand = new TaskCommand(LandingExecute);
+            KeyDownCommand = new TaskCommand<VirtualKey>(KeyDownExecute);
+            KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
+            commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
+            commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
 
         async Task UpdateCurrentState(string message)
@@ -172,6 +191,11 @@
         CameraHandler GetCameraHandler()
         {
             return _instance.ComponentManager.GetCameraHandler(0, 0);
+        }
+
+        GimbalHandler GetGimbalHandler()
+        {
+            return _instance.ComponentManager.GetGimbalHandler(0, 0);
         }
 
         #endregion Components Handler
@@ -240,6 +264,148 @@
         }
 
         #endregion TakeOffCommand
+
+        #region Landing Command
+
+        public ICommand LandingCommand { get; set; }
+        private async Task LandingExecute()
+        {
+            var fcHandler = GetFlightControllerHandler();
+
+            await fcHandler.StartAutoLandingAsync();
+        }
+
+        #endregion Landing Command
+
+        #region KeyDown Command
+
+        public ICommand KeyDownCommand { get; set; }
+        private async Task KeyDownExecute(VirtualKey key)
+        {
+            switch (key)
+            {
+                case VirtualKey.W:
+                    throttle += JOYSTICK_THROTTLE_STEP;
+
+                    if (throttle >= MAX_JOYSTICK_VALUE)
+                    {
+                        throttle = MAX_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.S:
+                    throttle -= JOYSTICK_THROTTLE_STEP;
+
+                    if (throttle <= MIN_JOYSTICK_VALUE)
+                    {
+                        throttle = MIN_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.A:
+                    yaw -= JOYSTICK_ATTITUDE_STEP;
+
+                    if (yaw <= MIN_JOYSTICK_VALUE)
+                    {
+                        yaw = MIN_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.D:
+                    yaw += JOYSTICK_ATTITUDE_STEP;
+
+                    if (yaw >= MAX_JOYSTICK_VALUE)
+                    {
+                        yaw = MAX_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.I:
+                    pitch += JOYSTICK_ATTITUDE_STEP;
+
+                    if (pitch >= MAX_JOYSTICK_VALUE)
+                    {
+                        pitch = MAX_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.K:
+                    pitch -= JOYSTICK_ATTITUDE_STEP;
+
+                    if (pitch <= MIN_JOYSTICK_VALUE)
+                    {
+                        pitch = MIN_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.J:
+                    roll -= JOYSTICK_ATTITUDE_STEP;
+
+                    if (roll <= MIN_JOYSTICK_VALUE)
+                    {
+                        roll = MIN_JOYSTICK_VALUE;
+                    }
+                    break;
+                case VirtualKey.L:
+                    roll += JOYSTICK_ATTITUDE_STEP;
+
+                    if (roll >= MAX_JOYSTICK_VALUE)
+                    {
+                        roll = MAX_JOYSTICK_VALUE;
+                    }
+                    break;
+            }
+
+            try
+            {
+                if (null != _instance)
+                {
+                    _instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+                }
+            }
+            catch (Exception)
+            { }
+        }
+
+        #endregion KeyDown Command
+
+        #region KeyUp Command
+
+        public ICommand KeyUpCommand { get; set; }
+        private async Task KeyUpExecute(VirtualKey key)
+        {
+            switch (key)
+            {
+                case VirtualKey.W:
+                case VirtualKey.S:
+                    throttle = 0;
+                    break;
+                case VirtualKey.A:
+                case VirtualKey.D:
+                    yaw = 0;
+                    break;
+                case VirtualKey.I:
+                case VirtualKey.K:
+                    pitch = 0;
+                    break;
+                case VirtualKey.J:
+                case VirtualKey.L:
+                    roll = 0;
+                    break;
+            }
+
+            try
+            {
+                if (null != _instance)
+                {
+                    _instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+                }
+            }
+            catch (Exception)
+            { }
+        }
+
+        #endregion KeyUp Command
+
+        public ICommand ResetGimbalCommand { get; set; }
+        private async Task ResetGimbalExecute()
+        {
+
+        }
 
         #endregion Commands
 

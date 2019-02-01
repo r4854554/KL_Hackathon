@@ -7,40 +7,62 @@
     xmlns:vm="using:HDCircles.Hackathon.ViewModels"
     mc:Ignorable="d" 
     
-    d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}">
+    d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}"
+    
+    KeyDown="Page_KeyDown"
+    KeyUp="Page_KeyUp">
 
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <CommandBar Grid.Row="0">
+        <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
+            <AppBarButton Icon="Refresh" Command="{Binding ResetGimbalCommand}" Label="Reset Gimbal" />
             <AppBarSeparator />
             <AppBarButton Icon="Up" Command="{Binding TakeOffCommand}" Label="Take Off" />
+            <AppBarButton Icon="Download" Command="{Binding LandingCommand}" Label="Landing" />
             <CommandBar.Content>
-                <TextBlock Text="{Binding CurrentStateText}" />
+                <TextBlock Text="{Binding CurrentStateText}" Margin="24,12" />
             </CommandBar.Content>
         </CommandBar>
 
-        <StackPanel Grid.Row="1">
-            <TextBlock Text="SDK Registration: " />
-            <TextBlock Text="{Binding RegistrationStateText}" />
-        </StackPanel>
+        <Border Grid.Row="1" Margin="24">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal">
-            <TextBlock Text="Throttle: " />
-            <TextBlock Text="{Binding Throttle}" />
-            <TextBlock Text="Pitch: " />
-            <TextBlock Text="{Binding Pitch}" />
-            <TextBlock Text="Roll: " />
-            <TextBlock Text="{Binding Roll}" />
-            <TextBlock Text="Yaw: " />
-            <TextBlock Text="{Binding Yaw}" />
-        </StackPanel>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
 
-        <SwapChainPanel Grid.Row="3" x:Name="FpvSwapChainPanel" Visibility="Visible" />
+                <StackPanel Grid.Row="0">
+                    <TextBlock Text="SDK Registration: " />
+                    <TextBlock Text="{Binding RegistrationStateText}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="Attitude" />
+                    <TextBlock Text="Pitch: " />
+                    <TextBlock Text="{Binding Pitch}" />
+                    <TextBlock Text="Roll: " />
+                    <TextBlock Text="{Binding Roll}" />
+                    <TextBlock Text="Yaw: " />
+                    <TextBlock Text="{Binding Yaw}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" Grid.Column="1">
+                    <TextBlock Text="Gimbal" />
+                    
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <SwapChainPanel Grid.Row="2" x:Name="FpvSwapChainPanel" Visibility="Visible" />
     </Grid>
 </Page>
