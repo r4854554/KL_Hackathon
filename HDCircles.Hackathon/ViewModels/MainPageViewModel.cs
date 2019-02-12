@@ -1,5 +1,6 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
+
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
@@ -16,6 +17,9 @@
 
     public class MainPageViewModel : ViewModelBase
     {
+
+        #region Constants
+        // Configuration constans
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
 
         private const float MAX_JOYSTICK_VALUE = 0.5f;
@@ -29,16 +33,6 @@
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
 
-        private readonly ICommandManager _commandManager;
-        private Timer stateTimer;
-
-        private bool _isInitialized;
-
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
-
         /// <summary>
         /// for joystick parameters
         /// </summary>
@@ -50,12 +44,32 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
+        #endregion Constants
+
+        #region Fields
+        private readonly ICommandManager _commandManager;
+        private Timer stateTimer;
+
+        private bool _isInitialized;
+
+        /// <summary>
+        /// the instance of DJIVideoParser
+        /// </summary>
+        private Parser _videoParser;
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
 
-        #region static Methods
+        #endregion Fields
 
+
+        #region Static Methods
+        /// <summary>
+        /// Async methods to run on UI thread.
+        /// </summary>
+        /// <param name="dispatcher"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
         static async Task CallOnUiThreadAsync(CoreDispatcher dispatcher, DispatchedHandler handler)
         {
             if (dispatcher.HasThreadAccess)
@@ -105,6 +119,7 @@
             set
             {
                 SetValue(ImageFpsProperty, value);
+                RaisePropertyChanged(nameof(ImageFpsText));
             }
         }
         public static PropertyData ImageFpsProperty = RegisterProperty(nameof(ImageFps), typeof(double));
@@ -250,29 +265,41 @@
 
         #endregion Properties
 
+        #region Class Methods
+        /// <summary>
+        /// Constructor MainPageViewModel
+        /// </summary>
+        /// <param name="commandManager"></param>
         public MainPageViewModel(ICommandManager commandManager)
         {
+
+            Console.WriteLine("Test!");
+
             _commandManager = commandManager;
             ImageFrameCount = 0;
 
-            MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
-            TakeOffCommand = new TaskCommand(TakeOffExecute);
-            LandingCommand = new TaskCommand(LandingExecute);
-            KeyDownCommand = new TaskCommand<VirtualKey>(KeyDownExecute);
-            KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
-            ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
-            ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
-            TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            MainPageLoadedCommand   = new TaskCommand(MainPageLoadedExecute);
+            TakeOffCommand          = new TaskCommand(TakeOffExecute);
+            LandingCommand          = new TaskCommand(LandingExecute);
+            KeyDownCommand          = new TaskCommand<VirtualKey>(KeyDownExecute);
+            KeyUpCommand            = new TaskCommand<VirtualKey>(KeyUpExecute);
+            ResetGimbalCommand      = new TaskCommand(ResetGimbalExecute);
+            ResetJoystickCommand    = new TaskCommand(ResetJoystickExecute);
+            TestGimbalCommand       = new TaskCommand(TestGimbalExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
 
+        #endregion Class Methods
+        #region Auxlliary functions
         private bool IsEqual(float a, float b)
         {
             return Math.Abs(a - b) < float.Epsilon;
         }
+
+        #endregion Auxlliary functions
 
         async Task UpdateCurrentState(string message)
         {
@@ -365,7 +392,7 @@
             }
         }
 
-        int[] VideoParserVideoAssitantInfoParserHandle(byte[] data)
+        int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
@@ -442,7 +469,7 @@
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
-                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandle);
+                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
                 _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
 
                 DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
@@ -752,8 +779,6 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
-            // intended to be empty
-
             await CallOnUiThreadAsync(() =>
             {
                 var now = DateTime.Now;
@@ -806,11 +831,16 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            Console.WriteLine("Test!!!");
+#if DEBUG
+            Console.WriteLine("Test!!!");
+#endif
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
             await UpdateGimbalAttitude();
             await UpdateVideoFeedFps();
+            await UpdateChargeRemaining();
         }
 
         private void MainPage_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
@@ -823,8 +853,7 @@
         private void MainPage_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             var key = e.Key;
-
-            KeyDownCommand.Execute(key);
+             
         }
 
         #endregion Events
