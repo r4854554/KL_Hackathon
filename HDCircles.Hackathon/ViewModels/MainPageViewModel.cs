@@ -23,6 +23,9 @@
 
     public class MainPageViewModel : ViewModelBase
     {
+
+        #region Constants
+        // Configuration constans
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
 
         private const float MAX_JOYSTICK_VALUE = 0.5f;
@@ -36,11 +39,6 @@
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
 
-        private readonly ICommandManager _commandManager;
-        private Timer stateTimer;
-
-        private bool _isInitialized;
-
         private object bufferLock = new object();
 
         private byte[] frameBuffer;
@@ -50,12 +48,7 @@
         private int frameHeight;
 
         private Task aprilTagDetectionWorker;
-
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
-
+        
         /// <summary>
         /// for joystick parameters
         /// </summary>
@@ -67,12 +60,32 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
+        #endregion Constants
+
+        #region Fields
+        private readonly ICommandManager _commandManager;
+        private Timer stateTimer;
+
+        private bool _isInitialized;
+
+        /// <summary>
+        /// the instance of DJIVideoParser
+        /// </summary>
+        private Parser _videoParser;
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
 
-        #region static Methods
+        #endregion Fields
 
+
+        #region Static Methods
+        /// <summary>
+        /// Async methods to run on UI thread.
+        /// </summary>
+        /// <param name="dispatcher"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
         static async Task CallOnUiThreadAsync(CoreDispatcher dispatcher, DispatchedHandler handler)
         {
             if (dispatcher.HasThreadAccess)
@@ -131,6 +144,7 @@
             set
             {
                 SetValue(ImageFpsProperty, value);
+                RaisePropertyChanged(nameof(ImageFpsText));
             }
         }
         public static PropertyData ImageFpsProperty = RegisterProperty(nameof(ImageFps), typeof(double));
@@ -276,8 +290,16 @@
 
         #endregion Properties
 
+        #region Class Methods
+        /// <summary>
+        /// Constructor MainPageViewModel
+        /// </summary>
+        /// <param name="commandManager"></param>
         public MainPageViewModel(ICommandManager commandManager)
         {
+
+            Console.WriteLine("Test!");
+
             _commandManager = commandManager;
             ImageFrameCount = 0;
             SdkAppKey = APP_KEY;
@@ -297,12 +319,15 @@
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
 
-        #region Methods
+        #endregion Class Methods
+        #region Auxlliary functions
 
         private bool IsEqual(float a, float b)
         {
             return Math.Abs(a - b) < float.Epsilon;
         }
+
+        #endregion Auxlliary functions
 
         async Task UpdateCurrentState(string message)
         {
@@ -395,7 +420,7 @@
             }
         }
 
-        int[] VideoParserVideoAssitantInfoParserHandle(byte[] data)
+        int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
@@ -488,8 +513,6 @@
 
         #endregion Components Handler
 
-        #endregion Methods
-
         #region Commands
 
         #region MainPageLoaded Command
@@ -538,7 +561,7 @@
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
-                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandle);
+                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
                 _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
 
                 DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
@@ -888,10 +911,6 @@
                 }
 
                 ImageFrameCount += 1;
-
-                if (null == aprilTagDetectionWorker)
-                {
-                }
             });
         }
 
@@ -929,6 +948,10 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            Console.WriteLine("Test!!!");
+#if DEBUG
+            Console.WriteLine("Test!!!");
+#endif
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
@@ -947,8 +970,7 @@
         private void MainPage_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             var key = e.Key;
-
-            KeyDownCommand.Execute(key);
+             
         }
 
         #endregion Events

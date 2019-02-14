@@ -119,11 +119,15 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <None Include="PosController - 複製.bak" />
+    <Compile Include="DjiSdk.cs" />
+    <Compile Include="StateEstimator.cs" />
     <Compile Include="Commands.cs" />
     <Compile Include="Counter.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="PosController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViewModels\MainPageViewModel.cs" />
   </ItemGroup>
