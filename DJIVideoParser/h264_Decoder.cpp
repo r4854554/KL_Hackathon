@@ -23,7 +23,7 @@ using namespace dji::videoparser;
 static bool s_stop_flag = false;
 static bool s_is_init_ffmpeg = false;
 
-#define PIX_FMT_FORMAT PIX_FMT_RGBA
+#define PIX_FMT_FORMAT AV_PIX_FMT_RGBA
 
 #define  HEAD_SIZE 12
 
@@ -116,7 +116,7 @@ bool h264_Decoder::InitFFMPEG()
 		return false;
 	}
 
-	m_av_frame = avcodec_alloc_frame();
+	m_av_frame = av_frame_alloc();
 
 	if (m_av_frame == nullptr)
 	{
@@ -124,7 +124,7 @@ bool h264_Decoder::InitFFMPEG()
 		return false;
 	}
 
-	m_dst_frame = avcodec_alloc_frame();
+	m_dst_frame = av_frame_alloc();
 
 	if (m_dst_frame == nullptr)
 	{

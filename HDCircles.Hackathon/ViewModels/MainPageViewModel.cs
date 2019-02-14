@@ -1,18 +1,25 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
+    using AprilTagsSharp;
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
     using DJI.WindowsSDK.Components;
     using DJIVideoParser;
     using System;
+    using System.Diagnostics;
+    using System.IO;
+    using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading.Tasks;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
+    using Windows.Graphics.Imaging;
+    using Windows.Storage;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+    using Windows.UI.Xaml.Media.Imaging;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -33,6 +40,16 @@
         private Timer stateTimer;
 
         private bool _isInitialized;
+
+        private object bufferLock = new object();
+
+        private byte[] frameBuffer;
+
+        private int frameWidth;
+
+        private int frameHeight;
+
+        private Task aprilTagDetectionWorker;
 
         /// <summary>
         /// the instance of DJIVideoParser
@@ -86,6 +103,15 @@
         public SwapChainPanel SwapChainPanel { get; set; }
 
         public static CoreDispatcher Dispatcher { get; set; }
+
+        public bool EnableAprilTagDetection { get; set; }
+
+        public string SdkAppKey
+        {
+            get => GetValue<string>(SdkAppKeyProperty);
+            set => SetValue(SdkAppKeyProperty, value);
+        }
+        public static PropertyData SdkAppKeyProperty = RegisterProperty(nameof(SdkAppKey), typeof(string));
 
         public bool IsRegistered { get; set; }
 
@@ -236,7 +262,7 @@
             }
         }
         public static PropertyData VelocityProperty = RegisterProperty(nameof(Velocity), typeof(Velocity3D));
-        
+
         public string VelocityXText => $"x: {Velocity.x}";
         public string VelocityYText => $"y: {Velocity.y}";
         public string VelocityZText => $"z: {Velocity.z}";
@@ -254,6 +280,7 @@
         {
             _commandManager = commandManager;
             ImageFrameCount = 0;
+            SdkAppKey = APP_KEY;
 
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
@@ -263,11 +290,14 @@
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
             TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            ToggleAprilTagDetectionCommand = new TaskCommand(ToggleAprilTagDetectionExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
+
+        #region Methods
 
         private bool IsEqual(float a, float b)
         {
@@ -370,6 +400,70 @@
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
 
+        void CreateAprilTagDetectionWorker()
+        {
+            if (null == aprilTagDetectionWorker)
+            {
+                aprilTagDetectionWorker = new Task(DetectAprilTag);
+            }
+        }
+
+        async void DetectAprilTag()
+        {
+
+            var aprilTag = new AprilTag("canny", true, "tag25h9");
+            var imageBuffer = new byte[0];
+
+            while (true)
+            {
+                var watch = Stopwatch.StartNew();
+                var elapsed = 0;
+
+
+                if (!EnableAprilTagDetection)
+                {
+                    watch.Stop();
+                    elapsed = (int)watch.ElapsedMilliseconds;
+
+                    await Task.Delay(Math.Max(0, 200 - elapsed));
+                }
+
+                try
+                {
+                    lock(bufferLock)
+                    {
+                        if (null == frameBuffer)
+                        {
+                            continue;
+                        }
+                        else
+                        {
+                            if (imageBuffer.Length != frameBuffer.Length)
+                            {
+                                Array.Resize(ref imageBuffer, frameBuffer.Length);
+                            }
+
+                            frameBuffer.CopyTo(imageBuffer.AsBuffer());
+                        }
+
+                        var result = aprilTag.Detect(frameHeight, frameWidth, imageBuffer);
+
+                        Console.WriteLine("detected: " + result.Count);
+                    }
+                }
+                catch
+                {
+                    await Task.Delay(10);
+                    continue;
+                }
+
+                watch.Stop();
+                elapsed = (int)watch.ElapsedMilliseconds;
+
+                await Task.Delay(Math.Max(0, 200 - elapsed));
+            }
+        }
+
         #region Components Handler
 
         FlightControllerHandler GetFlightControllerHandler()
@@ -394,6 +488,8 @@
 
         #endregion Components Handler
 
+        #endregion Methods
+
         #region Commands
 
         #region MainPageLoaded Command
@@ -405,7 +501,7 @@
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            sdkManager.RegisterApp(APP_KEY);
+            sdkManager.RegisterApp(SdkAppKey);
 
             await Task.Delay(100);
         }
@@ -715,6 +811,12 @@
             var result = await gimbalHandler.RotateBySpeedAsync(param);
         }
 
+        public ICommand ToggleAprilTagDetectionCommand { get; set; }
+        private async Task ToggleAprilTagDetectionExecute()
+        {
+            EnableAprilTagDetection = !EnableAprilTagDetection;
+        }
+
         #endregion Commands
 
         #region Events
@@ -752,9 +854,26 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
-            // intended to be empty
+            lock (bufferLock)
+            {
+                if (null == frameBuffer)
+                {
+                    frameBuffer = data;
+                }
+                else
+                {
+                    if (data.Length != frameBuffer.Length)
+                    {
+                        Array.Resize(ref frameBuffer, data.Length);
+                    }
 
-            await CallOnUiThreadAsync(() =>
+                    data.CopyTo(frameBuffer.AsBuffer());
+                    frameWidth = width;
+                    frameHeight = height;
+                }
+            }
+
+            await CallOnUiThreadAsync(async () =>
             {
                 var now = DateTime.Now;
                 var elapsed = now - imageFpsStart;
@@ -769,6 +888,10 @@
                 }
 
                 ImageFrameCount += 1;
+
+                if (null == aprilTagDetectionWorker)
+                {
+                }
             });
         }
 

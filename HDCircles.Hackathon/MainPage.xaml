@@ -9,7 +9,7 @@
     
     d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}">
 
-    <Grid x:Name="RootGrid">
+    <Grid x:Name="RootGrid" Background="White">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -17,6 +17,7 @@
         </Grid.RowDefinitions>
 
         <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
+            <AppBarButton Icon="Tag" Command="{Binding ToggleAprilTagDetectionCommand}" Label="Toggle AprilTag Detection" />
             <AppBarButton Icon="Camera" Command="{Binding TestGimbalCommand}" Label="Test Gimbal Control" />
             <AppBarButton Icon="Refresh" Command="{Binding ResetGimbalCommand}" Label="Reset Gimbal" />
             <AppBarSeparator />
@@ -49,6 +50,23 @@
                 <StackPanel Grid.Row="0">
                     <TextBlock Text="SDK Registration: " />
                     <TextBlock Text="{Binding RegistrationStateText}" />
+                </StackPanel>
+
+                <StackPanel Grid.Row="0" Grid.Column="1">
+                    <TextBlock Text="Parameters" />
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock VerticalAlignment="Center" Text="AppKey" />
+                        <TextBox Grid.Column="1" Text="{Binding SdkAppKey}" />
+                    </Grid>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Vertical">
