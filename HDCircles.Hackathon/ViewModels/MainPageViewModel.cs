@@ -7,12 +7,17 @@
     using DJIVideoParser;
     using System;
     using System.Threading.Tasks;
+    using System.Threading;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+    using Dynamsoft.Barcode;
+    using Windows.Graphics.Imaging;
+    using Windows.Storage.Streams;
+    using System.ComponentModel;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -28,9 +33,11 @@
         private const int PRODUCT_ID = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
+        private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
+        private BarcodeReader br = new BarcodeReader();
 
         private readonly ICommandManager _commandManager;
-        private Timer stateTimer;
+        private System.Timers.Timer stateTimer;
 
         private bool _isInitialized;
 
@@ -240,6 +247,16 @@
         public string VelocityXText => $"x: {Velocity.x}";
         public string VelocityYText => $"y: {Velocity.y}";
         public string VelocityZText => $"z: {Velocity.z}";
+        public string DecodeText {
+            get => GetValue<string>(DecodeTextProperty);
+            set
+            {
+                SetValue(DecodeTextProperty, value);
+                RaisePropertyChanged(nameof(DecodeText));
+            }
+        }
+        
+        public static PropertyData DecodeTextProperty = RegisterProperty(nameof(DecodeText),typeof(string));
 
         public bool IsTimerEnabled
         {
@@ -263,6 +280,8 @@
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
             TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            br.LicenseKeys = Dynamsoft_App_Key;
+            
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
@@ -453,7 +472,7 @@
 
                 CameraHandler_CameraTypeChanged(null, cameraType.value);
 
-                stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
+                stateTimer = new System.Timers.Timer(STATETIMER_UPDATE_FREQUENCE);
                 stateTimer.Elapsed += StateTimer_Elapsed;
                 stateTimer.AutoReset = true;
                 stateTimer.Enabled = true;
@@ -769,7 +788,47 @@
                 }
 
                 ImageFrameCount += 1;
+                if (ImageFrameCount % 5 == 0)
+                    new Thread(() => Decode_QRcode(data, width, height)).Start();
             });
+            //new Thread(() => Decode_QRcode(data, width, height)).Start(); 
+        }
+
+        private async void Decode_QRcode(byte[] data,int width,int height) {
+
+            try
+            {
+                byte[] image = new byte[width * height * 4];
+                int count = 0;
+                int size = data.Length / 4;
+                for (int j = 0; j < size; j++)
+                {
+                    for (int i = 3; i >= 0; i--)
+                    {
+                        image[count + i] = data[count + (3 - i)];
+                    }
+                    count += 4;
+                }
+                TextResult[] result =
+                    br.DecodeBuffer(image, width, height, width*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
+
+                 await CallOnUiThreadAsync(() =>
+                {
+                    if (result.Length > 0)
+                    {
+                        DecodeText = "";
+                        for (int i = 0; i < result.Length; i++)
+                        {
+                            DecodeText += result[i].BarcodeText + "\n";
+                        }
+                    }
+                });
+            }
+            catch (System.AccessViolationException)
+            {
+
+            }
+            data = null;
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
