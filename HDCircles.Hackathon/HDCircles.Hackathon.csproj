@@ -223,6 +223,9 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.2.3</Version>
     </PackageReference>
+    <PackageReference Include="OpenCvSharp3-AnyCPU">
+      <Version>4.0.0.20181129</Version>
+    </PackageReference>
   </ItemGroup>
   <ItemGroup>
     <Reference Include="DJIWindowsSDK">

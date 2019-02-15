@@ -29,7 +29,7 @@
 
         private const float GIMBAL_ROTATE_STEP = 5f;
 
-        private const int PRODUCT_ID = 0;
+        private const int PRODUCT_ID    = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
 
@@ -51,6 +51,8 @@
         private Timer stateTimer;
 
         private bool _isInitialized;
+
+        private DjiSdk _djiSdk;
 
         /// <summary>
         /// the instance of DJIVideoParser
@@ -613,7 +615,7 @@
                 if (null != DJISDKManager.Instance)
                 {
                     DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
-
+                    
                     var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
                     {
                         mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
@@ -831,10 +833,7 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            Console.WriteLine("Test!!!");
-#if DEBUG
-            Console.WriteLine("Test!!!");
-#endif
+      
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
