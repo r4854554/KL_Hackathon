@@ -40,11 +40,7 @@
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
         private BarcodeReader br = new BarcodeReader();
 
-        private readonly ICommandManager _commandManager;
-        private System.Timers.Timer stateTimer;
-
-        private bool _isInitialized;
-
+       
         /// <summary>
         /// the instance of DJIVideoParser
         /// </summary>
@@ -65,16 +61,12 @@
 
         #region Fields
         private readonly ICommandManager _commandManager;
-        private Timer stateTimer;
+        private System.Timers.Timer stateTimer;
 
         private bool _isInitialized;
 
         private DjiSdk _djiSdk;
-
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
+        
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
