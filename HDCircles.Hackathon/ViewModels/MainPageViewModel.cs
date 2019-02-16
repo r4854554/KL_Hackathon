@@ -1,5 +1,6 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
+
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
@@ -21,6 +22,9 @@
 
     public class MainPageViewModel : ViewModelBase
     {
+
+        #region Constants
+        // Configuration constans
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
 
         private const float MAX_JOYSTICK_VALUE = 0.5f;
@@ -30,7 +34,7 @@
 
         private const float GIMBAL_ROTATE_STEP = 5f;
 
-        private const int PRODUCT_ID = 0;
+        private const int PRODUCT_ID    = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
@@ -57,12 +61,34 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
+        #endregion Constants
+
+        #region Fields
+        private readonly ICommandManager _commandManager;
+        private Timer stateTimer;
+
+        private bool _isInitialized;
+
+        private DjiSdk _djiSdk;
+
+        /// <summary>
+        /// the instance of DJIVideoParser
+        /// </summary>
+        private Parser _videoParser;
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
 
-        #region static Methods
+        #endregion Fields
 
+
+        #region Static Methods
+        /// <summary>
+        /// Async methods to run on UI thread.
+        /// </summary>
+        /// <param name="dispatcher"></param>
+        /// <param name="handler"></param>
+        /// <returns></returns>
         static async Task CallOnUiThreadAsync(CoreDispatcher dispatcher, DispatchedHandler handler)
         {
             if (dispatcher.HasThreadAccess)
@@ -112,6 +138,7 @@
             set
             {
                 SetValue(ImageFpsProperty, value);
+                RaisePropertyChanged(nameof(ImageFpsText));
             }
         }
         public static PropertyData ImageFpsProperty = RegisterProperty(nameof(ImageFps), typeof(double));
@@ -267,8 +294,16 @@
 
         #endregion Properties
 
+        #region Class Methods
+        /// <summary>
+        /// Constructor MainPageViewModel
+        /// </summary>
+        /// <param name="commandManager"></param>
         public MainPageViewModel(ICommandManager commandManager)
         {
+
+            Console.WriteLine("Test!");
+
             _commandManager = commandManager;
             ImageFrameCount = 0;
 
@@ -288,10 +323,14 @@
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
 
+        #endregion Class Methods
+        #region Auxlliary functions
         private bool IsEqual(float a, float b)
         {
             return Math.Abs(a - b) < float.Epsilon;
         }
+
+        #endregion Auxlliary functions
 
         async Task UpdateCurrentState(string message)
         {
@@ -384,7 +423,7 @@
             }
         }
 
-        int[] VideoParserVideoAssitantInfoParserHandle(byte[] data)
+        int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
@@ -461,7 +500,7 @@
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
-                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandle);
+                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
                 _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
 
                 DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
@@ -605,7 +644,7 @@
                 if (null != DJISDKManager.Instance)
                 {
                     DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
-
+                    
                     var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
                     {
                         mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
@@ -771,8 +810,6 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
-            // intended to be empty
-
             await CallOnUiThreadAsync(() =>
             {
                 var now = DateTime.Now;
@@ -865,6 +902,7 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+      
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
