@@ -788,8 +788,8 @@
                 }
 
                 ImageFrameCount += 1;
-                if (ImageFrameCount % 5 == 0)
-                    new Thread(() => Decode_QRcode(data, width, height)).Start();
+                //if (ImageFrameCount % 5 == 0)
+                //    new Thread(() => Decode_QRcode(data, width, height)).Start();
             });
             //new Thread(() => Decode_QRcode(data, width, height)).Start(); 
         }
@@ -870,7 +870,7 @@
             await UpdateVelocity();
             await UpdateGimbalAttitude();
             await UpdateVideoFeedFps();
-            await UpdateChargeRemaining();
+            //await UpdateChargeRemaining();
         }
 
         private void MainPage_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)

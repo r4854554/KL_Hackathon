@@ -50,5 +50,7 @@ namespace HDCircles.Hackathon
 
             Loaded -= MainPage_Loaded;
         }
+
+    
     }
 }
