@@ -63,7 +63,7 @@
                 <StackPanel Grid.Row="1" Grid.Column="1">
                     <TextBlock Text="Gimbal" />
                     <TextBlock Text="{Binding GimbalPitchText}" />
-                    <TextBlock Text="{Binding GimbalRollText}" />
+                    <TextBlock Text="{Binding GimbalRollText}" Margin="-5,0,5,0" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" />
                     <TextBlock Text="{Binding GimbalYawText}" />
                 </StackPanel>
 

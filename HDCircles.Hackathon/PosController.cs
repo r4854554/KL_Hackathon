@@ -7,11 +7,32 @@ namespace HDCircles.Hackathon
     {
         private Thread _thread;
 
+        public bool Init()
+        {
+            // get initial state
+
+            // load parameters
+            // 
+
+
+            // resolve frames if needed
+
+            // initial PID controllers
+
+
+            return true;
+        }
+        void Reset()
+        {
+
+        }
+        
         public PosController()
         {
             _thread = new Thread(Thread_Run);
         }
 
+        
         public void Start()
         {
             DJISDKManager.Instance.SDKRegistrationStateChanged += Instance_SDKRegistrationStateChanged;
