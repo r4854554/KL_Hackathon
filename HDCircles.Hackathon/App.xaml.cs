@@ -51,7 +51,7 @@ namespace HDCircles.Hackathon
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
             var posCtrl = new PosController();
-            System.Diagnostics.Debug.WriteLine("Test22");
+            System.Diagnostics.Debug.WriteLine("PosCtrl");
             
             posCtrl.Start();
 

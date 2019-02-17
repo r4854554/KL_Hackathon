@@ -114,9 +114,17 @@
 
         public bool IsRegistered { get; set; }
 
-        public double ImageFrameCount
+        //public double ImageFrameCount
+        //{
+        //    get => GetValue<double>(ImageFrameCountProperty);
+        //    set
+        //    {
+        //        SetValue(ImageFrameCountProperty, value);
+        //    }
+        //}
+        public int ImageFrameCount
         {
-            get => GetValue<double>(ImageFrameCountProperty);
+            get => GetValue<int>(ImageFrameCountProperty);
             set
             {
                 SetValue(ImageFrameCountProperty, value);
@@ -415,12 +423,20 @@
             }
         }
 
+
         int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
 
         #region Components Handler
+
+
+        WiFiHandler GetWifiHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetWiFiHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
 
         FlightControllerHandler GetFlightControllerHandler()
         {
@@ -452,6 +468,7 @@
 
         private async Task MainPageLoadedExecute()
         {
+
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
@@ -488,7 +505,8 @@
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
                 var gimbalHandler = GetGimbalHandler();
-                
+                var wifiHandler = GetWifiHandler();
+
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
@@ -507,6 +525,17 @@
                 stateTimer.Elapsed += StateTimer_Elapsed;
                 stateTimer.AutoReset = true;
                 stateTimer.Enabled = true;
+
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug");
+                var connection = await wifiHandler.GetConnectionAsync();
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug done {0}", connection.value.HasValue);
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug done {0}", connection.error.ToString());
+                if (connection.value.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine("Connection status:{0}", connection.value.Value); 
+                }
+
+
 
                 _isInitialized = true;
             });
@@ -815,12 +844,26 @@
                     imageFpsStart = now;
                     ImageFrameCount = 0;
                 }
-
-                ImageFrameCount += 1;
-                //if (ImageFrameCount % 5 == 0)
-                //    new Thread(() => Decode_QRcode(data, width, height)).Start();
+                object lck = new object();
+                bool determinator = false;
+                lock (lck)
+                {
+                    ImageFrameCount += 1;
+                    determinator = ImageFrameCount % 5 == 0;
+                }
+                
+                //if (ImageFrameCount % 5 == 0 )
+                if (determinator)
+                {
+    
+                    //new Thread(() => Decode_QRcode(data, width, height)).Start();
+                    new Thread(() => Decode_QRcode(data, width, height)).Start();
+                    
+                   
+                }
+                
             });
-            //new Thread(() => Decode_QRcode(data, width, height)).Start(); 
+            //new Thread(() => Decode_QRcode(data, width, height)).Start();
         }
 
         private async void Decode_QRcode(byte[] data,int width,int height) {
@@ -828,6 +871,7 @@
             try
             {
                 byte[] image = new byte[width * height * 4];
+                int nWidth = width, nHeight = height;
                 int count = 0;
                 int size = data.Length / 4;
                 for (int j = 0; j < size; j++)
@@ -839,7 +883,7 @@
                     count += 4;
                 }
                 TextResult[] result =
-                    br.DecodeBuffer(image, width, height, width*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
+                    br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
 
                  await CallOnUiThreadAsync(() =>
                 {
@@ -851,6 +895,7 @@
                             DecodeText += result[i].BarcodeText + "\n";
                         }
                     }
+                    result = null;
                 });
             }
             catch (System.AccessViolationException)
