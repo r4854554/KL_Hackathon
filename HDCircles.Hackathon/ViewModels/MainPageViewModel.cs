@@ -22,6 +22,9 @@
     // for LiveCharts
     using LiveCharts;
     using LiveCharts.Uwp;
+    using System.Drawing;
+    using System.Text.RegularExpressions;
+    using System.Collections.Generic;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -102,6 +105,7 @@
         #endregion static Methods
 
         #region Properties
+
 
         /// <summary>
         /// the ui component
@@ -472,16 +476,35 @@
         private async Task MainPageLoadedExecute()
         {
 
-            var sdkManager = DJISDKManager.Instance;
+            var _sdkInstance = DJISDKManager.Instance;
+            _sdkInstance.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
 
-            sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            sdkManager.RegisterApp(APP_KEY);
+            if (_sdkInstance == null)
+            {
+                System.Diagnostics.Debug.WriteLine("Info:MainPageLoadedExecute:sdkManager instantiated");
+            } else
+            {
+                System.Diagnostics.Debug.WriteLine("Info:MainPageLoadedExecute:sdkManager already instantiated");
+            }
+
+
+
+            if (DJISDKManager.Instance.SDKRegistrationResultCode < 0 )
+            {
+                System.Diagnostics.Debug.WriteLine("Info:MainPageLoadedExecute:Try to register app {0}", DJISDKManager.Instance.SDKRegistrationResultCode);
+                _sdkInstance.RegisterApp(APP_KEY);
+            } else
+            {
+                System.Diagnostics.Debug.WriteLine("Info:MainPageLoadedExecute:App is regisstered suuccesfully");
+            }
+                
 
             await Task.Delay(100);
         }
 
         private async void DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         {
+            System.Diagnostics.Debug.WriteLine("Info:DJKSDKManager_SDKRegistrationStateChanged:DJKSDKManager_SDKRegistrationStateChanged");
             IsRegistered = errorCode == SDKError.NO_ERROR;
 
             await CallOnUiThreadAsync(() =>
@@ -842,7 +865,6 @@
                 if (elapsed >= TimeSpan.FromSeconds(1))
                 {
                     var n = (imageFpsStart - processStart).TotalSeconds;
-
                     ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
                     imageFpsStart = now;
                     ImageFrameCount = 0;
@@ -853,24 +875,19 @@
                 {
                     ImageFrameCount += 1;
                     determinator = ImageFrameCount % 5 == 0;
-                }
-                
+                }                
                 //if (ImageFrameCount % 5 == 0 )
                 if (determinator)
-                {
-    
+                {    
                     //new Thread(() => Decode_QRcode(data, width, height)).Start();
-                    new Thread(() => Decode_QRcode(data, width, height)).Start();
-                    
-                   
-                }
-                
+                    new Thread(() => Decode_QRcode(data, width, height)).Start();                                      
+                }                
             });
             //new Thread(() => Decode_QRcode(data, width, height)).Start();
         }
 
-        private async void Decode_QRcode(byte[] data,int width,int height) {
-
+        private async void Decode_QRcode(byte[] data,int width,int height)
+        {
             try
             {
                 byte[] image = new byte[width * height * 4];
@@ -885,9 +902,10 @@
                     }
                     count += 4;
                 }
+                // ToFix: it crashes sometime, saying that 
                 TextResult[] result =
                     br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
-
+                LocalizationResult[] localizationResults = br.GetAllLocalizationResults();
                  await CallOnUiThreadAsync(() =>
                 {
                     if (result.Length > 0)
@@ -895,7 +913,9 @@
                         DecodeText = "";
                         for (int i = 0; i < result.Length; i++)
                         {
-                            DecodeText += result[i].BarcodeText + "\n";
+                            
+                            DecodeText += result[i].BarcodeText + 
+                                $"({localizationResults[i].ResultPoints[0]}),({localizationResults[i].ResultPoints[2]})\n";
                         }
                     }
                     result = null;
@@ -906,6 +926,26 @@
 
             }
             data = null;
+        }
+
+        private void FurtherProcess(TextResult[] data, LocalizationResult[] pos) {
+            Regex LocationTagReg= new Regex(@"^[A-Z]{2}[0-9]{6}$");
+            Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
+            List<int> LocationTagPos = new List<int>();
+            List<int> CartonTagPos = new List<int>();
+            int DataSize = data.Length;
+            // Classify Tag
+            for(int i =0;i<DataSize;i++) {
+                string temp = data[i].BarcodeText;
+                if (LocationTagReg.Match(temp).Success)
+                {
+                    LocationTagPos.Add(i);
+                }
+                else if (CartonTagReg.Match(temp).Success)
+                {
+                    CartonTagPos.Add(i);
+                }
+            }                       
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
@@ -942,7 +982,7 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-      
+            //System.Diagnostics.Debug.WriteLine("Info:StateTimer_Elapsed:startime: {}", DateTime.Now);
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
