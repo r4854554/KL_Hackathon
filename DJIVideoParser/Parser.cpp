@@ -124,3 +124,104 @@ void DJIVideoParser::Parser::SetCameraSensor(AircraftCameraType sensor)
 	
 	video_parser_mgr->SetSensor(map[sensor]);
 }
+
+Platform::Array<AprilTagDetection^>^ DJIVideoParser::Parser::DetectAprilTag(const Platform::Array<byte>^ data, int width, int height, AprilTagFamily tagFamily)
+{
+	float decimate = 1.0;	
+	float blur = 0.8;
+	int refineEdges = 0;
+	int threadNum = 1;
+	apriltag_family_t *tf = NULL;
+
+	switch (tagFamily)
+	{
+	case AprilTagFamily::Tag16h5:
+		tf = tag16h5_create();
+		break;
+	case AprilTagFamily::Tag25h9:
+		tf = tag25h9_create();
+		break;
+	case AprilTagFamily::Tag36h11:
+		tf = tag36h11_create();
+		break;
+	default:
+		tf = tag36h11_create();
+		break;
+	}
+
+	apriltag_detector_t *td = apriltag_detector_create();
+	apriltag_detector_add_family(td, tf);
+
+	td->quad_decimate = decimate;
+	td->quad_sigma = blur;
+	td->nthreads = threadNum;
+	td->debug = 0;
+	td->refine_edges = refineEdges;
+
+	image_u8_t im = {
+		width,		// .width
+		height,		// .height
+		width * 3,	// .stride
+		data->Data	// .buf
+	};
+
+	zarray_t *detections = apriltag_detector_detect(td, &im);
+
+	Array<AprilTagDetection^>^ rtnDetections = ref new Array<AprilTagDetection^>(zarray_size(detections));
+
+	for (int i = 0; i < zarray_size(detections); i++) {
+		apriltag_detection_t *d = NULL;
+		zarray_get_volatile(detections, i, d);
+		
+		DJIVideoParser::AprilTagDetection^ rtnD = ref new AprilTagDetection();
+
+		rtnD->id = d->id;
+		rtnD->hamming = d->hamming;
+		rtnD->decision_margin = d->decision_margin;
+
+		rtnDetections[i] = rtnD;
+	}
+
+	zarray_destroy(detections);
+	apriltag_detector_destroy(td);
+	
+	switch (tagFamily)
+	{
+	case AprilTagFamily::Tag16h5:
+		tag16h5_destroy(tf);
+		break;
+	case AprilTagFamily::Tag25h9:
+		tag25h9_destroy(tf);
+		break;
+	case AprilTagFamily::Tag36h11:
+		tag36h11_destroy(tf);
+		break;
+	}
+
+	return rtnDetections;
+}
+
+image_u8_t *DJIVideoParser::Parser::image_u8_from_u8x4(image_u8x4_t *src)
+{
+	int stride = src->width * 3;
+	uint8_t *buf = (uint8_t*)malloc(src->height * stride * sizeof(uint8_t));
+
+	for (int y = 0; y < src->height; y++)
+		for (int x = 0; x < src->width; x++)
+		{
+			buf[y * stride + x + 0] = src->buf[y * src->stride + x + 0];
+			buf[y * stride + x + 1] = src->buf[y * src->stride + x + 1];
+			buf[y * stride + x + 2] = src->buf[y * src->stride + x + 2];
+		}
+
+	image_u8_t tmp = {
+		src->width,
+		src->height,
+		stride,
+		buf
+	};
+	image_u8_t *copy = (image_u8_t*)calloc(1, sizeof(image_u8_t));
+	memcpy(copy, &tmp, sizeof(image_u8_t));
+
+	return copy;
+}

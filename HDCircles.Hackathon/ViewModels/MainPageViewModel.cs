@@ -1,25 +1,22 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
-    using AprilTagsSharp;
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
     using DJI.WindowsSDK.Components;
     using DJIVideoParser;
+    using OpenCvSharp;
     using System;
-    using System.Diagnostics;
-    using System.IO;
+    using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading.Tasks;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
-    using Windows.Graphics.Imaging;
     using Windows.Storage;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
-    using Windows.UI.Xaml.Media.Imaging;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -297,9 +294,6 @@
         /// <param name="commandManager"></param>
         public MainPageViewModel(ICommandManager commandManager)
         {
-
-            Console.WriteLine("Test!");
-
             _commandManager = commandManager;
             ImageFrameCount = 0;
             SdkAppKey = APP_KEY;
@@ -436,57 +430,7 @@
         async void DetectAprilTag()
         {
 
-            var aprilTag = new AprilTag("canny", true, "tag25h9");
-            var imageBuffer = new byte[0];
-
-            while (true)
-            {
-                var watch = Stopwatch.StartNew();
-                var elapsed = 0;
-
-
-                if (!EnableAprilTagDetection)
-                {
-                    watch.Stop();
-                    elapsed = (int)watch.ElapsedMilliseconds;
-
-                    await Task.Delay(Math.Max(0, 200 - elapsed));
-                }
-
-                try
-                {
-                    lock(bufferLock)
-                    {
-                        if (null == frameBuffer)
-                        {
-                            continue;
-                        }
-                        else
-                        {
-                            if (imageBuffer.Length != frameBuffer.Length)
-                            {
-                                Array.Resize(ref imageBuffer, frameBuffer.Length);
-                            }
-
-                            frameBuffer.CopyTo(imageBuffer.AsBuffer());
-                        }
-
-                        var result = aprilTag.Detect(frameHeight, frameWidth, imageBuffer);
-
-                        Console.WriteLine("detected: " + result.Count);
-                    }
-                }
-                catch
-                {
-                    await Task.Delay(10);
-                    continue;
-                }
-
-                watch.Stop();
-                elapsed = (int)watch.ElapsedMilliseconds;
-
-                await Task.Delay(Math.Max(0, 200 - elapsed));
-            }
+            
         }
 
         #region Components Handler
@@ -524,7 +468,9 @@
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            sdkManager.RegisterApp(SdkAppKey);
+            
+            if(sdkManager.appActivationState != AppActivationState.ACTIVATED)
+                sdkManager.RegisterApp(SdkAppKey);
 
             await Task.Delay(100);
         }
@@ -561,6 +507,7 @@
                 fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
+                
                 _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
                 _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
 
@@ -837,7 +784,40 @@
         public ICommand ToggleAprilTagDetectionCommand { get; set; }
         private async Task ToggleAprilTagDetectionExecute()
         {
-            EnableAprilTagDetection = !EnableAprilTagDetection;
+            //EnableAprilTagDetection = !EnableAprilTagDetection;
+
+            byte[] buffer = new byte[frameWidth * frameHeight * 3];
+
+            try
+            {
+                lock (bufferLock)
+                {
+                    if (buffer.Length != frameBuffer.Length)
+                    {
+                        Array.Resize(ref buffer, frameBuffer.Length);
+
+                        frameBuffer.CopyTo(buffer.AsBuffer());
+                    }                    
+                }
+
+                var rgba = new Mat(frameHeight, frameWidth, MatType.CV_8UC4, buffer);
+                var rgb = rgba.CvtColor(ColorConversionCodes.RGBA2RGB);
+                var bytes = rgb.Width * 3 * rgb.Height;
+                var rgbBytes = new byte[bytes];
+
+                Marshal.Copy(rgb.Data, rgbBytes, 0, bytes);
+
+                var storageFolder = ApplicationData.Current.LocalFolder;
+                var file = await storageFolder.CreateFileAsync("sample.bin", CreationCollisionOption.ReplaceExisting);
+
+                await FileIO.WriteBytesAsync(file, rgbBytes);
+
+                //var detections = _videoParser.DetectAprilTag(buffer, frameWidth, frameHeight, AprilTagFamily.Tag25h9);
+            }
+            catch (Exception e)
+            {
+                
+            }            
         }
 
         #endregion Commands

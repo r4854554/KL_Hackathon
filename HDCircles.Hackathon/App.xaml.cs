@@ -2,7 +2,12 @@
 {
     using Catel.IoC;
     using Catel.MVVM;
+    using Catel.Services;
+    using HDCircles.Hackathon.ViewModels;
+    using HDCircles.Hackathon.Views;
     using System;
+    using System.Collections.Generic;
+    using System.Diagnostics;
     using Windows.ApplicationModel;
     using Windows.ApplicationModel.Activation;
     using Windows.UI.Xaml;
@@ -28,9 +33,15 @@
 
         private void App_UnhandledException(object sender, Windows.UI.Xaml.UnhandledExceptionEventArgs e)
         {
-            var ex = e.Exception;
+            e.Handled = true;
 
-            Console.WriteLine(ex.ToString());
+#if DEBUG
+            if (Debugger.IsAttached)
+            {
+                Debugger.Break();
+            }
+#else
+#endif
         }
 
         /// <summary>
@@ -40,11 +51,6 @@
         /// <param name="e">關於啟動要求和處理序的詳細資料。</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
-            var posCtrl = new PosController();
-            System.Diagnostics.Debug.WriteLine("Test22");
-            
-            posCtrl.Start();
-
             var dependencyResolver = this.GetDependencyResolver();
             var commandManger = dependencyResolver.Resolve<ICommandManager>();
 
@@ -76,10 +82,7 @@
             {
                 if (rootFrame.Content == null)
                 {
-                    // 在巡覽堆疊未還原時，巡覽至第一頁，
-                    // 設定新的頁面，方式是透過傳遞必要資訊做為巡覽
-                    // 參數
-                    rootFrame.Navigate(typeof(MainPage), e.Arguments);
+                    rootFrame.Navigate(typeof(NavigationPage));
                 }
                 // 確定目前視窗是作用中
                 Window.Current.Activate();

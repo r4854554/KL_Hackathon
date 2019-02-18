@@ -1,0 +1,85 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tga;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="dllmain.cpp" />
+    <ClCompile Include="AprilTags.cpp" />
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="apriltag.c" />
+    <ClCompile Include="apriltag_pose.c" />
+    <ClCompile Include="apriltag_quad_thresh.c" />
+    <ClCompile Include="g2d.c" />
+    <ClCompile Include="getopt.c" />
+    <ClCompile Include="homography.c" />
+    <ClCompile Include="image_u8.c" />
+    <ClCompile Include="image_u8x3.c" />
+    <ClCompile Include="image_u8x4.c" />
+    <ClCompile Include="matd.c" />
+    <ClCompile Include="pam.c" />
+    <ClCompile Include="pjpeg.c" />
+    <ClCompile Include="pjpeg-idct.c" />
+    <ClCompile Include="pnm.c" />
+    <ClCompile Include="string_util.c" />
+    <ClCompile Include="svd22.c" />
+    <ClCompile Include="tag16h5.c" />
+    <ClCompile Include="tag25h9.c" />
+    <ClCompile Include="tag36h11.c" />
+    <ClCompile Include="tagCircle21h7.c" />
+    <ClCompile Include="tagCircle49h12.c" />
+    <ClCompile Include="tagCustom48h12.c" />
+    <ClCompile Include="tagStandard41h12.c" />
+    <ClCompile Include="tagStandard52h13.c" />
+    <ClCompile Include="time_util.c" />
+    <ClCompile Include="unionfind.c" />
+    <ClCompile Include="workerpool.c" />
+    <ClCompile Include="zarray.c" />
+    <ClCompile Include="zhash.c" />
+    <ClCompile Include="zmaxheap.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="AprilTags.h" />
+    <ClInclude Include="pch.h" />
+    <ClInclude Include="targetver.h" />
+    <ClInclude Include="apriltag.h" />
+    <ClInclude Include="apriltag_math.h" />
+    <ClInclude Include="apriltag_pose.h" />
+    <ClInclude Include="doubles.h" />
+    <ClInclude Include="doubles_floats_impl.h" />
+    <ClInclude Include="floats.h" />
+    <ClInclude Include="g2d.h" />
+    <ClInclude Include="getopt.h" />
+    <ClInclude Include="homography.h" />
+    <ClInclude Include="image_types.h" />
+    <ClInclude Include="image_u8.h" />
+    <ClInclude Include="image_u8x3.h" />
+    <ClInclude Include="image_u8x4.h" />
+    <ClInclude Include="matd.h" />
+    <ClInclude Include="math_util.h" />
+    <ClInclude Include="pam.h" />
+    <ClInclude Include="pjpeg.h" />
+    <ClInclude Include="pnm.h" />
+    <ClInclude Include="postscript_utils.h" />
+    <ClInclude Include="string_util.h" />
+    <ClInclude Include="svd22.h" />
+    <ClInclude Include="tag16h5.h" />
+    <ClInclude Include="tag25h9.h" />
+    <ClInclude Include="tag36h11.h" />
+    <ClInclude Include="tagCircle21h7.h" />
+    <ClInclude Include="tagCircle49h12.h" />
+    <ClInclude Include="tagCustom48h12.h" />
+    <ClInclude Include="tagStandard41h12.h" />
+    <ClInclude Include="tagStandard52h13.h" />
+    <ClInclude Include="time_util.h" />
+    <ClInclude Include="timeprofile.h" />
+    <ClInclude Include="unionfind.h" />
+    <ClInclude Include="workerpool.h" />
+    <ClInclude Include="zarray.h" />
+    <ClInclude Include="zhash.h" />
+    <ClInclude Include="zmaxheap.h" />
+  </ItemGroup>
+</Project>

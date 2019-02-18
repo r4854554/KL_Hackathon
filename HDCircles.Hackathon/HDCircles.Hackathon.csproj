@@ -119,6 +119,11 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Services\DjiSdkManager.cs" />
+    <Compile Include="ViewModels\ActivationPageViewModel.cs" />
+    <Compile Include="Views\NavigationPage.xaml.cs">
+      <DependentUpon>NavigationPage.xaml</DependentUpon>
+    </Compile>
     <None Include="PosController - 複製.bak" />
     <Compile Include="DjiSdk.cs" />
     <Compile Include="StateEstimator.cs" />
@@ -187,6 +192,12 @@
     <Content Include="avutil-54.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="DynamicPdf.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="DynamsoftBarcodeReaderx86.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="libcrypto-1_1.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -203,6 +214,9 @@
     <Content Include="swscale-3.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="vcomp110.dll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">
@@ -212,6 +226,14 @@
     <Page Include="MainPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
+    </Page>
+    <Page Include="Views\ActivationPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\NavigationPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
     </Page>
   </ItemGroup>
   <ItemGroup>
@@ -224,15 +246,14 @@
     <PackageReference Include="Microsoft.NETCore.UniversalWindowsPlatform">
       <Version>6.2.3</Version>
     </PackageReference>
+    <PackageReference Include="Microsoft.UI.Xaml">
+      <Version>2.0.181018004</Version>
+    </PackageReference>
     <PackageReference Include="OpenCvSharp3-AnyCPU">
       <Version>4.0.0.20181129</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\AprilTagsSharp\AprilTagsSharp.csproj">
-      <Project>{1e5a976b-4581-4a7c-8875-2c0f201eb800}</Project>
-      <Name>AprilTagsSharp</Name>
-    </ProjectReference>
     <ProjectReference Include="..\DJIVideoParser\DJIVideoParser.vcxproj">
       <Project>{5f8b4a30-b8d1-46b5-be32-aee3c899e3bf}</Project>
       <Name>DJIVideoParser</Name>
