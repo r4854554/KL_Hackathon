@@ -5,9 +5,11 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:vm="using:HDCircles.Hackathon.ViewModels"
+    xmlns:lvc="using:LiveCharts.Uwp" 
     mc:Ignorable="d" 
     
     d:DataContext="{d:DesignInstance IsDesignTimeCreatable=False, Type=vm:MainPageViewModel}">
+
 
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
@@ -87,5 +89,8 @@
             </Grid>
         </Border>
         <SwapChainPanel Grid.Row="2" x:Name="FpvSwapChainPanel" Visibility="Visible" />
+        <HyperlinkButton Content="HyperlinkButton" HorizontalAlignment="Left" Margin="862,35,0,0" Grid.Row="1" VerticalAlignment="Top" Click="HyperlinkButton_Click"/>
+
+
     </Grid>
 </Page>

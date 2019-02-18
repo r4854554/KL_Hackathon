@@ -19,6 +19,9 @@
     using Windows.Graphics.Imaging;
     using Windows.Storage.Streams;
     using System.ComponentModel;
+    // for LiveCharts
+    using LiveCharts;
+    using LiveCharts.Uwp;
 
     public class MainPageViewModel : ViewModelBase
     {
