@@ -33,7 +33,8 @@
 
         <TextBlock Grid.Column="0" Grid.Row="1" Text="Activation State: " />
         <TextBlock Grid.Column="1" Grid.Row="1" x:Name="ActivationStateTextBox" />
-        
+
+        <Button Grid.Column="0" Grid.Row="2" Content="Activate" Click="ActivateButton_Click" />
         <TextBlock Grid.Column="1" Grid.Row="2" x:Name="ActivationResultTextBox" />
     </Grid>
 </Page>

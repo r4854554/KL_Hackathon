@@ -47,5 +47,10 @@ namespace HDCircles.Hackathon.Views
                 ActivationResultTextBox.Text = errorCode.ToString();
             });
         }
+
+        private void ActivateButton_Click(object sender, RoutedEventArgs e)
+        {
+            DJISDKManager.Instance.RegisterApp(SdkKeyTextBox.Text);
+        }
     }
 }

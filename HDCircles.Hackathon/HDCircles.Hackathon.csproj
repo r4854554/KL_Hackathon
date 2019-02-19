@@ -120,9 +120,11 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\DjiSdkManager.cs" />
-    <Compile Include="ViewModels\ActivationPageViewModel.cs" />
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\CalibrationPage.xaml.cs">
+      <DependentUpon>CalibrationPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\NavigationPage.xaml.cs">
       <DependentUpon>NavigationPage.xaml</DependentUpon>
@@ -234,6 +236,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\ActivationPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\CalibrationPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>

@@ -40,6 +40,17 @@
                 ViewType = typeof(MainPage),
             });
 
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Image Processing",
+            });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Camera Calibration",
+                Tag = nameof(CalibrationPage),
+                ViewType = typeof(CalibrationPage),
+            });
+
             // initialize navigation menu items
             foreach (var item in menuItems)
             {
