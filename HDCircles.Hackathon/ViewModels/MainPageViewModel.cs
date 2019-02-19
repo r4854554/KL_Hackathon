@@ -23,6 +23,8 @@
     using LiveCharts;
     using LiveCharts.Uwp;
     using System.Drawing;
+    using System.Text.RegularExpressions;
+    using System.Collections.Generic;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -102,6 +104,7 @@
         #endregion static Methods
 
         #region Properties
+
 
         /// <summary>
         /// the ui component
@@ -482,6 +485,7 @@
 
         private async void DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         {
+            System.Diagnostics.Debug.WriteLine("Info:DJKSDKManager_SDKRegistrationStateChanged:DJKSDKManager_SDKRegistrationStateChanged");
             IsRegistered = errorCode == SDKError.NO_ERROR;
 
             await CallOnUiThreadAsync(() =>
@@ -883,6 +887,7 @@
                     }
                     count += 4;
                 }
+                // ToFix: it crashes sometime, saying that 
                 TextResult[] result =
                     br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
                 LocalizationResult[] pos = br.GetAllLocalizationResults();
@@ -905,6 +910,26 @@
 
             }
             data = null;
+        }
+
+        private void FurtherProcess(TextResult[] data, LocalizationResult[] pos) {
+            Regex LocationTagReg= new Regex(@"^[A-Z]{2}[0-9]{6}$");
+            Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
+            List<int> LocationTagPos = new List<int>();
+            List<int> CartonTagPos = new List<int>();
+            int DataSize = data.Length;
+            // Classify Tag
+            for(int i =0;i<DataSize;i++) {
+                string temp = data[i].BarcodeText;
+                if (LocationTagReg.Match(temp).Success)
+                {
+                    LocationTagPos.Add(i);
+                }
+                else if (CartonTagReg.Match(temp).Success)
+                {
+                    CartonTagPos.Add(i);
+                }
+            }                       
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
