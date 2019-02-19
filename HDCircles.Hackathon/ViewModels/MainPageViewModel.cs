@@ -77,7 +77,6 @@
 
         #endregion Fields
 
-
         #region Static Methods
         /// <summary>
         /// Async methods to run on UI thread.
@@ -521,10 +520,10 @@
 
                 CameraHandler_CameraTypeChanged(null, cameraType.value);
 
-                stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
-                stateTimer.Elapsed += StateTimer_Elapsed;
-                stateTimer.AutoReset = true;
-                stateTimer.Enabled = true;
+                //stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
+                //stateTimer.Elapsed += StateTimer_Elapsed;
+                //stateTimer.AutoReset = true;
+                //stateTimer.Enabled = true;
 
                 _isInitialized = true;
             });
