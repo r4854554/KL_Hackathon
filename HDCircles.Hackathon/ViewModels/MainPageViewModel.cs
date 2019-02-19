@@ -22,6 +22,7 @@
     // for LiveCharts
     using LiveCharts;
     using LiveCharts.Uwp;
+    using System.Drawing;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -42,7 +43,6 @@
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
         private BarcodeReader br = new BarcodeReader();
-
        
         /// <summary>
         /// the instance of DJIVideoParser
@@ -317,7 +317,7 @@
             KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
-            TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            TestGimbalCommand = new TaskCommand(TestGimbalExecute);            
             br.LicenseKeys = Dynamsoft_App_Key;
             
 
@@ -834,43 +834,41 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
+            var now = DateTime.Now;
+            var elapsed = now - imageFpsStart;
+            var frameCount = ImageFrameCount;
+            var fps = ImageFps;
+
+            if (elapsed >= TimeSpan.FromSeconds(1))
+            {
+                var n = (imageFpsStart - processStart).TotalSeconds;
+
+                fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
+                imageFpsStart = now;
+                frameCount = 0;
+            }
+            object lck = new object();
+            bool determinator = false;
+            lock (lck)
+            {
+                frameCount += 1;
+                determinator = frameCount % 5 == 0;
+            }
+
+            //if (ImageFrameCount % 5 == 0 )
+            if (determinator)
+            {
+                new Thread(() => Decode_QRcode(data, width, height)).Start();
+            }
+
             await CallOnUiThreadAsync(() =>
             {
-                var now = DateTime.Now;
-                var elapsed = now - imageFpsStart;
-
-                if (elapsed >= TimeSpan.FromSeconds(1))
-                {
-                    var n = (imageFpsStart - processStart).TotalSeconds;
-
-                    ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-                    imageFpsStart = now;
-                    ImageFrameCount = 0;
-                }
-                object lck = new object();
-                bool determinator = false;
-                lock (lck)
-                {
-                    ImageFrameCount += 1;
-                    determinator = ImageFrameCount % 5 == 0;
-                }
-                
-                //if (ImageFrameCount % 5 == 0 )
-                if (determinator)
-                {
-    
-                    //new Thread(() => Decode_QRcode(data, width, height)).Start();
-                    new Thread(() => Decode_QRcode(data, width, height)).Start();
-                    
-                   
-                }
-                
+                ImageFrameCount = frameCount;
+                ImageFps = fps;
             });
-            //new Thread(() => Decode_QRcode(data, width, height)).Start();
         }
 
         private async void Decode_QRcode(byte[] data,int width,int height) {
-
             try
             {
                 byte[] image = new byte[width * height * 4];
@@ -887,7 +885,8 @@
                 }
                 TextResult[] result =
                     br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
-
+                LocalizationResult[] pos = br.GetAllLocalizationResults();
+                
                  await CallOnUiThreadAsync(() =>
                 {
                     if (result.Length > 0)
