@@ -226,7 +226,7 @@
                     Cv2.ImShow("img", img);
                     Cv2.WaitKey(500);
 
-                    Cv2.CalibrateCamera(objPoints, imgPoints, grayImg.Size(), );
+                    //Cv2.CalibrateCamera(objPoints, imgPoints, grayImg.Size(), );
                 }
             }
             //Cv2.DestroyAllWindows();
