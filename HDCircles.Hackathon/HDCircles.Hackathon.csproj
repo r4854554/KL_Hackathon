@@ -121,9 +121,15 @@
     </Compile>
     <Compile Include="Services\DjiSdkManager.cs" />
     <Compile Include="ViewModels\ActivationPageViewModel.cs" />
+    <Compile Include="Views\ActivationPage.xaml.cs">
+      <DependentUpon>ActivationPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\NavigationPage.xaml.cs">
       <DependentUpon>NavigationPage.xaml</DependentUpon>
     </Compile>
+    <None Include="Assets\sample.bin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="PosController - 複製.bak" />
     <Compile Include="DjiSdk.cs" />
     <Compile Include="StateEstimator.cs" />
@@ -254,6 +260,10 @@
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AprilTagsSharp\AprilTagsSharp.csproj">
+      <Project>{2c049bf0-f888-416b-87b2-e0ab5f991dae}</Project>
+      <Name>AprilTagsSharp</Name>
+    </ProjectReference>
     <ProjectReference Include="..\DJIVideoParser\DJIVideoParser.vcxproj">
       <Project>{5f8b4a30-b8d1-46b5-be32-aee3c899e3bf}</Project>
       <Name>DJIVideoParser</Name>

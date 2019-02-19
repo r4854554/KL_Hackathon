@@ -8,6 +8,7 @@ namespace HDCircles.Hackathon
 {
     using Catel.IoC;
     using Catel.MVVM;
+    using HDCircles.Hackathon.Services;
     using HDCircles.Hackathon.ViewModels;
     using Windows.UI.Xaml.Controls;
 
@@ -37,6 +38,13 @@ namespace HDCircles.Hackathon
             DataContext = _viewModel;
 
             Loaded += MainPage_Loaded;
+
+            DjiSdkManager.Instance.StateChanged += Instance_StateChanged;
+        }
+
+        private void Instance_StateChanged(FlightState state)
+        {
+            
         }
 
         private void MainPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)

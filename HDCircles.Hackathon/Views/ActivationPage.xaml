@@ -1,14 +1,39 @@
 ﻿<Page
-    x:Class="HDCircles.Hackathon.ActivationPage"
+    x:Class="HDCircles.Hackathon.Views.ActivationPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:local="using:HDCircles.Hackathon"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d"
-    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+    d:DesignHeight="300"
+    d:DesignWidth="400">
+
+    <Page.Resources>
+        <Style TargetType="TextBlock">
+            <Setter Property="HorizontalAlignment" Value="Right" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="HorizontalTextAlignment" Value="Right" />
+            <Setter Property="Margin" Value="0,0,12,0" />
+        </Style>
+    </Page.Resources>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="Auto" />
+        </Grid.ColumnDefinitions>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
 
+        <TextBlock Grid.Column="0" Grid.Row="0" Text="Sdk Key: " />
+        <TextBox Grid.Column="1" Grid.Row="0" x:Name="SdkKeyTextBox" />
+
+        <TextBlock Grid.Column="0" Grid.Row="1" Text="Activation State: " />
+        <TextBlock Grid.Column="1" Grid.Row="1" x:Name="ActivationStateTextBox" />
+        
+        <TextBlock Grid.Column="1" Grid.Row="2" x:Name="ActivationResultTextBox" />
     </Grid>
 </Page>

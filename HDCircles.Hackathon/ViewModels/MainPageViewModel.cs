@@ -1,5 +1,6 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
+    using AprilTagsSharp;
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
@@ -14,6 +15,7 @@
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
     using Windows.Storage;
+    using Windows.Storage.Streams;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
@@ -786,31 +788,41 @@
         {
             //EnableAprilTagDetection = !EnableAprilTagDetection;
 
+            frameWidth = 1280;
+            frameHeight = 960;
+
             byte[] buffer = new byte[frameWidth * frameHeight * 3];
 
             try
             {
-                lock (bufferLock)
-                {
-                    if (buffer.Length != frameBuffer.Length)
-                    {
-                        Array.Resize(ref buffer, frameBuffer.Length);
+                //lock (bufferLock)
+                //{
+                //    if (buffer.Length != frameBuffer.Length)
+                //    {
+                //        Array.Resize(ref buffer, frameBuffer.Length);
 
-                        frameBuffer.CopyTo(buffer.AsBuffer());
-                    }                    
-                }
+                //        frameBuffer.CopyTo(buffer.AsBuffer());
+                //    }                    
+                //}
 
-                var rgba = new Mat(frameHeight, frameWidth, MatType.CV_8UC4, buffer);
-                var rgb = rgba.CvtColor(ColorConversionCodes.RGBA2RGB);
-                var bytes = rgb.Width * 3 * rgb.Height;
-                var rgbBytes = new byte[bytes];
+                //var rgba = new Mat(frameHeight, frameWidth, MatType.CV_8UC4, buffer);
+                //var rgb = rgba.CvtColor(ColorConversionCodes.RGBA2RGB);
+                //var bytes = rgb.Width * 3 * rgb.Height;
+                //var rgbBytes = new byte[bytes];
 
-                Marshal.Copy(rgb.Data, rgbBytes, 0, bytes);
+                //Marshal.Copy(rgb.Data, rgbBytes, 0, bytes);
 
-                var storageFolder = ApplicationData.Current.LocalFolder;
-                var file = await storageFolder.CreateFileAsync("sample.bin", CreationCollisionOption.ReplaceExisting);
+                var folder = ApplicationData.Current.LocalFolder;
+                var file = await folder.GetFileAsync("sample.bin");
+                var stream = await file.OpenAsync(FileAccessMode.Read);
+                var buf = buffer.AsBuffer();
 
-                await FileIO.WriteBytesAsync(file, rgbBytes);
+                await stream.ReadAsync(buf, (uint)(frameWidth * frameHeight * 3), InputStreamOptions.None);
+
+                var mat = new Mat(frameHeight, frameWidth, MatType.CV_8UC3, buffer);
+                var ap = new AprilTag("canny", false, "tag25h9", 0.8, 1, 400);
+
+                var result = ap.detect(mat);
 
                 //var detections = _videoParser.DetectAprilTag(buffer, frameWidth, frameHeight, AprilTagFamily.Tag25h9);
             }
@@ -928,10 +940,6 @@
 
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
-            Console.WriteLine("Test!!!");
-#if DEBUG
-            Console.WriteLine("Test!!!");
-#endif
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();

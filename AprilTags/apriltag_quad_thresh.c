@@ -836,8 +836,6 @@ int fit_quad(
     if (sz < 24)
         return 0;
 
-	return 0;
-
     struct line_fit_pt *lfps = compute_lfps(sz, cluster, im);
 
     int indices[4];

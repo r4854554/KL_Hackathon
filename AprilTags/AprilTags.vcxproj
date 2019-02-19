@@ -165,7 +165,7 @@
       <SubSystem>Console</SubSystem>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateWindowsMetadata>false</GenerateWindowsMetadata>
-      <AdditionalLibraryDirectories>ThirdParties\x86\pthread-win32\bin\Win32_MSVC2015.Release;</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\DJIVideoParser\ThirdParties\x86\pthread-win32\bin\Win32_MSVC2015.Release;</AdditionalLibraryDirectories>
       <AdditionalDependencies>pthread_dll.lib;WindowsApp.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
     <Lib>
