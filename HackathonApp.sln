@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HDCircles.Hackathon", "HDCi
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DJIVideoParser", "DJIVideoParser\DJIVideoParser.vcxproj", "{5F8B4A30-B8D1-46B5-BE32-AEE3C899E3BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PidController", "pid-controller\PidController\PidController\PidController.csproj", "{5A1005FB-2D9C-4BF3-96E1-1FC20717999D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PidController", "pid-controller-master\PidController\PidController\PidController.csproj", "{5A1005FB-2D9C-4BF3-96E1-1FC20717999D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
