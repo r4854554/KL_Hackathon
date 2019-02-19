@@ -188,18 +188,26 @@
             });
         }
 
-        private void DoCalibrationButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        private async void DoCalibrationButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
-            var objPoints = new List<Point3f>();
-            var imgPoints = new List<Point2f>();
+            var objList = new List<Point3f>();
+            var objPoints = new List<Point3f[]>();
+            var imgPoints = new List<Point2f[]>();
             var chessboardSize = new Size(7, 5);
             var terminationCriteria = new TermCriteria(CriteriaType.Eps | CriteriaType.MaxIter, 30, 0.001);
 
-            for (int x = 0; x < chessboardSize.Height; x++)
+            for (int y = 0; y < chessboardSize.Height; y++)
             {
-                for (int y = 0; y < chessboardSize.Width; y++)
+                for (int x = 0; x < chessboardSize.Width; x++)
                 {
+                    var point = new Point3f
+                    {
+                        X = x,
+                        Y = y,
+                        Z = 0
+                    };
 
+                    objList.Add(point);
                 }
             }
 
@@ -210,9 +218,6 @@
                 Point2f[] corners;
 
                 Cv2.CvtColor(img, grayImg, ColorConversionCodes.RGBA2GRAY);
-                               
-                Cv2.ImShow("gray", grayImg);
-                Cv2.WaitKey(5000);
 
                 var result = Cv2.FindChessboardCorners(grayImg, chessboardSize, out corners, ChessboardFlags.None);
 
@@ -222,14 +227,30 @@
                     var zeroZone = new Size(-1, -1);
                     var refinedCorners = Cv2.CornerSubPix(grayImg, corners, winSize, zeroZone, terminationCriteria);
 
+                    objPoints.Add(objList.ToArray());
+                    imgPoints.Add(corners);
+
                     Cv2.DrawChessboardCorners(img, chessboardSize, refinedCorners, result);
                     Cv2.ImShow("img", img);
-                    Cv2.WaitKey(500);
-
-                    Cv2.CalibrateCamera(objPoints, imgPoints, grayImg.Size(), );
+                    Cv2.WaitKey(500);             
                 }
             }
-            //Cv2.DestroyAllWindows();
+
+            if (objPoints.Count > 0) {
+                var cameraMat = new double[3, 3];
+                var distCoeffVec = new double[14];
+                var rVecs = new Vec3d[0];
+                var tVecs = new Vec3d[0];
+
+                var calResult = Cv2.CalibrateCamera(objPoints, imgPoints, new Size(frameWidth, frameHeight), cameraMat, distCoeffVec, out rVecs, out tVecs);
+            }
+
+            calibrateImages.Clear();
+
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                ImageCount.Text = "Calibration Image Count: " + calibrateImages.Count;
+            });
         }
     }
 }

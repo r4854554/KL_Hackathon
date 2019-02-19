@@ -50,6 +50,12 @@
                 Tag = nameof(CalibrationPage),
                 ViewType = typeof(CalibrationPage),
             });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "April Tags Pose Estimation",
+                Tag = nameof(AprilTagsPage),
+                ViewType = typeof(AprilTagsPage),
+            });
 
             // initialize navigation menu items
             foreach (var item in menuItems)

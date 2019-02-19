@@ -123,6 +123,9 @@
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Views\AprilTagsPage.xaml.cs">
+      <DependentUpon>AprilTagsPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Views\CalibrationPage.xaml.cs">
       <DependentUpon>CalibrationPage.xaml</DependentUpon>
     </Compile>
@@ -236,6 +239,10 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Include="Views\ActivationPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
+    <Page Include="Views\AprilTagsPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
