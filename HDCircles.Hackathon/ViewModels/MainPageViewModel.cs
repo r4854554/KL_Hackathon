@@ -882,7 +882,7 @@
             //if (ImageFrameCount % 5 == 0 )
             if (determinator)
             {
-                new Thread(() => Decode_QRcode(data, width, height)).Start();
+                //new Thread(() => Decode_QRcode(data, width, height)).Start();
             }
 
             await CallOnUiThreadAsync(() =>
@@ -907,11 +907,12 @@
                     }
                     count += 4;
                 }
+                data = null;
                 // ToFix: it crashes sometime, saying that 
                 TextResult[] result =
                     br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
                 LocalizationResult[] pos = br.GetAllLocalizationResults();
-                
+                image = null;
                  await CallOnUiThreadAsync(() =>
                 {
                     if (result.Length > 0)

@@ -119,7 +119,10 @@
     <Compile Include="App.xaml.cs">
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
+    <Compile Include="Services\Commander.cs" />
+    <Compile Include="Services\DroneController.cs" />
     <Compile Include="Services\Drone.cs" />
+    <Compile Include="util\Class1.cs" />
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
     </Compile>
@@ -228,8 +231,6 @@
     <Content Include="lib\vcomp110.dll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Readme.txt" />
-    <Content Include="vcomp110.dll" />
   </ItemGroup>
   <ItemGroup>
     <ApplicationDefinition Include="App.xaml">

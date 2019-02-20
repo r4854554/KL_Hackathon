@@ -1,12 +1,19 @@
-﻿namespace HDCircles.Hackathon.Views
+﻿using HDCircles.Hackathon.Services;
+
+namespace HDCircles.Hackathon.Views
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+
 
     public sealed partial class NavigationPage : Page
     {
+        private bool _isInitailized = false;
+        public DroneController _droneController;
+
         private List<NavigationMenuItem> menuItems;
 
         public NavigationPage()
@@ -14,6 +21,13 @@
             this.InitializeComponent();
 
             menuItems = new List<NavigationMenuItem>();
+
+            if (!_isInitailized)
+            {
+                _droneController = new DroneController();
+                DroneController.Dispatcher = Dispatcher;
+
+            }
         }
 
         private void NavigationPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
@@ -50,6 +64,7 @@
                 Tag = nameof(CalibrationPage),
                 ViewType = typeof(CalibrationPage),
             });
+
             menuItems.Add(new NavigationMenuItem
             {
                 Name = "April Tags Pose Estimation",
@@ -71,8 +86,6 @@
                     NavView.MenuItems.Add(item.Name);
                 }
             }
-
-            ContentFrame.Navigate(menuItems[1].ViewType);
         }
 
         private void NavigationView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)

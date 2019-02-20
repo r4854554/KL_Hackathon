@@ -32,18 +32,18 @@ namespace HDCircles.Hackathon.Services
     {
         public event StateChangedHandler StateChanged;
 
-        private static Drone _instance;
+        private static DJISDKManager _sdkManager;
 
-        public static Drone Instance
+        public static DJISDKManager SdkManager
         {
             get
             {
-                if (null == _instance)
+                if (null == _sdkManager)
                 {
-                    _instance = new Drone();
+                    _sdkManager = DJISDKManager.Instance;
                 }
 
-                return _instance;
+                return _sdkManager;
             }
         }
 
@@ -54,7 +54,7 @@ namespace HDCircles.Hackathon.Services
         /// <summary>
         /// indicates whether the sdk instance is able to connect
         /// </summary>
-        private bool _isSdkRegistered;
+        public bool _isSdkRegistered;
 
         /// <summary>
         /// indicates the background worker is running.
@@ -69,16 +69,17 @@ namespace HDCircles.Hackathon.Services
         /// <summary>
         /// 
         /// </summary>
-        private Thread _workerThread;
+        //private Thread _workerThread;
 
         private BackgroundWorker backgroundWorker;
 
         /// <summary>
         /// current flight state of the drone.
         /// </summary>
-        private FlightState currentState;
+        private FlightState _currentState;
+        public FlightState CurrentState { get=> _currentState; }
 
-        private Drone()
+        public Drone()
         {
             backgroundWorker = new BackgroundWorker();
             backgroundWorker.DoWork += BackgroundWorker_DoWork;
@@ -121,16 +122,16 @@ namespace HDCircles.Hackathon.Services
                 elapsed = watch.ElapsedMilliseconds;
                 sleepTime = (int)Math.Max(updateFrequence - elapsed, 0L);
 
-                Debug.WriteLine($"Background thread id: {Thread.CurrentThread.ManagedThreadId}");
-                Debug.WriteLine("elapsed: " + watch.Elapsed.TotalMilliseconds);
-
+                //Debug.WriteLine($"Background thread id: {Thread.CurrentThread.ManagedThreadId}");
+                //Debug.WriteLine("elapsed: " + watch.Elapsed.TotalMilliseconds);
+                
                 Thread.Sleep(sleepTime);
             }
         }
 
         private async Task CollectData()
         {
-            Debug.WriteLine($"Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
+            //Debug.WriteLine($"Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
 
             var attitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAttitudeAsync();
             var altitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAltitudeAsync();
@@ -152,15 +153,16 @@ namespace HDCircles.Hackathon.Services
 
             lock (_stateLock)
             {
-                currentState = new FlightState(altitudeValue, yaw, pitch, roll, flightStateError);
+                _currentState = new FlightState(altitudeValue, yaw, pitch, roll, flightStateError);
 
                 if (null != StateChanged)
                 {
                     // dispatch the state
-                    StateChanged.Invoke(currentState);
+                    StateChanged.Invoke(_currentState);
                 }
-
-                Debug.WriteLine($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
+                DateTime localDate = DateTime.Now;
+                Debug.WriteLine($"Info:CollectData:{localDate.Millisecond:G} - yaw: {yaw} pitch - {pitch} roll - {roll} altitude - {altitudeValue}");
+                //Debug.WriteLine($"yaw: {_currentState.Yaw} pitch: {_currentState.Pitch} roll: {_currentState.Roll} altitude: {_currentState.Altitude}");
             }
         }
 
