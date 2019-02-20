@@ -82,10 +82,7 @@
         private readonly ICommandManager _commandManager;
         private System.Timers.Timer stateTimer;
 
-        private bool _isInitialized;
-
-        private DjiSdk _djiSdk;
-        
+        private bool _isInitialized;        
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
