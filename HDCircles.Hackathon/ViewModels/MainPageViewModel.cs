@@ -29,6 +29,8 @@
     using System.Collections.Generic;
 
     using Timer = System.Timers.Timer;
+    using OpenCvSharp;
+    using System.Runtime.InteropServices;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -48,7 +50,13 @@
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
-        private BarcodeReader br = new BarcodeReader();
+        private BarcodeReader br;
+
+        private BackgroundWorker backgroundWorker;
+
+        private bool _enableQrcodeDetection;
+
+        private long qrcodeDetectFrequence = 250L;
        
         /// <summary>
         /// the instance of DJIVideoParser
@@ -330,6 +338,10 @@
             ImageFrameCount = 0;
             SdkAppKey = APP_KEY;
 
+            backgroundWorker = new BackgroundWorker();
+            backgroundWorker.DoWork += BackgroundWorker_DoWork;
+            backgroundWorker.RunWorkerAsync();
+
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
             LandingCommand = new TaskCommand(LandingExecute);
@@ -338,14 +350,102 @@
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
             TestGimbalCommand = new TaskCommand(TestGimbalExecute);            
-            br.LicenseKeys = Dynamsoft_App_Key;
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
         }
 
+        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        {
+            var watch = Stopwatch.StartNew();
+            var elapsed = 0L;
+            var sleepTime = 0;
+
+            for (; ; )
+            {
+                watch.Restart();
+
+                if (!_enableQrcodeDetection || !IsRegistered || !_isInitialized)
+                {
+                    watch.Stop();
+
+                    elapsed = watch.ElapsedMilliseconds;
+                    sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
+
+                    Thread.Sleep(sleepTime);
+                    continue;
+                }
+
+                DoDetection().Wait();
+
+                watch.Stop();
+
+                elapsed = watch.ElapsedMilliseconds;
+                sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
+
+                Thread.Sleep(sleepTime);
+            }
+        }
+
+        private async Task DoDetection()
+        {
+            var buffer = default(byte[]);
+            int width, height;
+
+            lock (bufferLock)
+            {
+                if (frameWidth == 0 || frameHeight == 0)
+                {
+                    return;
+                }
+
+                width = frameWidth;
+                height = frameHeight;
+
+                buffer = new byte[frameWidth * frameHeight * 4];
+
+                frameBuffer.CopyTo(buffer.AsBuffer());
+            }
+
+            Decode_QRcode(buffer, width, height);
+
+            //var now = DateTime.Now;
+            //var elapsed = now - imageFpsStart;
+            //var frameCount = ImageFrameCount;
+            //var fps = ImageFps;
+
+            //if (elapsed >= TimeSpan.FromSeconds(1))
+            //{
+            //    var n = (imageFpsStart - processStart).TotalSeconds;
+
+            //    fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
+            //    imageFpsStart = now;
+            //    frameCount = 0;
+            //}
+            //object lck = new object();
+            //bool determinator = false;
+            //lock (lck)
+            //{
+            //    frameCount += 1;
+            //    determinator = frameCount % 5 == 0;
+            //}
+
+            //if (ImageFrameCount % 5 == 0 )
+            //if (determinator)
+            //{
+            //    new Thread(() => Decode_QRcode(data, width, height)).Start();
+            //}
+
+            //await CallOnUiThreadAsync(() =>
+            //{
+            //    ImageFrameCount = frameCount;
+            //    ImageFps = fps;
+            //});
+        }
+
         #endregion Class Methods
+
         #region Auxlliary functions
 
         private bool IsEqual(float a, float b)
@@ -506,7 +606,7 @@
 
         private async void DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         {
-            System.Diagnostics.Debug.WriteLine("Info:DJKSDKManager_SDKRegistrationStateChanged:DJKSDKManager_SDKRegistrationStateChanged");
+            Debug.WriteLine("Info:DJKSDKManager_SDKRegistrationStateChanged:DJKSDKManager_SDKRegistrationStateChanged");
             IsRegistered = errorCode == SDKError.NO_ERROR;
 
             await CallOnUiThreadAsync(() =>
@@ -538,7 +638,7 @@
                 _videoParser = new Parser();
                 
                 _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
-                _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, SwapChainPanel, VideoParserVideoDataCallback);
+                _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, null, VideoParserVideoDataCallback);
 
                 DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
 
@@ -562,8 +662,7 @@
                     System.Diagnostics.Debug.WriteLine("Connection status:{0}", connection.value.Value); 
                 }
 
-
-
+                _enableQrcodeDetection = true;
                 _isInitialized = true;
             });
         }
@@ -858,61 +957,60 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
-            var now = DateTime.Now;
-            var elapsed = now - imageFpsStart;
-            var frameCount = ImageFrameCount;
-            var fps = ImageFps;
-
-            if (elapsed >= TimeSpan.FromSeconds(1))
+            lock (bufferLock)
             {
-                var n = (imageFpsStart - processStart).TotalSeconds;
+                if (null == frameBuffer)
+                {
+                    frameBuffer = data;
+                }
+                else
+                {
+                    if (frameBuffer.Length != data.Length)
+                    {
+                        Array.Resize(ref frameBuffer, data.Length);
+                    }
 
-                fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-                imageFpsStart = now;
-                frameCount = 0;
+                    data.CopyTo(frameBuffer.AsBuffer());
+                }
+
+                frameWidth = width;
+                frameHeight = height;
             }
-            object lck = new object();
-            bool determinator = false;
-            lock (lck)
-            {
-                frameCount += 1;
-                determinator = frameCount % 5 == 0;
-            }
-
-            //if (ImageFrameCount % 5 == 0 )
-            if (determinator)
-            {
-                new Thread(() => Decode_QRcode(data, width, height)).Start();
-            }
-
-            await CallOnUiThreadAsync(() =>
-            {
-                ImageFrameCount = frameCount;
-                ImageFps = fps;
-            });
         }
 
-        private async void Decode_QRcode(byte[] data,int width,int height) {
+        private async Task Decode_QRcode(byte[] data,int width,int height) {
             try
             {
-                byte[] image = new byte[width * height * 4];
-                int nWidth = width, nHeight = height;
-                int count = 0;
-                int size = data.Length / 4;
-                for (int j = 0; j < size; j++)
-                {
-                    for (int i = 3; i >= 0; i--)
-                    {
-                        image[count + i] = data[count + (3 - i)];
-                    }
-                    count += 4;
-                }
+                var mat = new Mat(height, width, MatType.CV_8UC4, data);
+                var gray = new Mat();
+
+                Cv2.CvtColor(mat, gray, ColorConversionCodes.RGBA2GRAY);
+
+                var length = gray.Rows * gray.Cols * gray.ElemSize();
+                var buffer = new byte[length];
+
+                Marshal.Copy(gray.Data,  buffer, 0, length);
+
+                //byte[] image = new byte[width * height * 4];
+                //int nWidth = width, nHeight = height;
+                //int count = 0;
+                //int size = data.Length / 4;
+                //for (int j = 0; j < size; j++)
+                //{
+                //    for (int i = 3; i >= 0; i--)
+                //    {
+                //        image[count + i] = data[count + (3 - i)];
+                //    }
+                //    count += 4;
+                //}
                 // ToFix: it crashes sometime, saying that 
+                br = new BarcodeReader();
+                br.LicenseKeys = Dynamsoft_App_Key;
                 TextResult[] result =
-                    br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
+                    br.DecodeBuffer(buffer, width, height, gray.Cols * gray.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
                 LocalizationResult[] pos = br.GetAllLocalizationResults();
                 
-                 await CallOnUiThreadAsync(() =>
+                await CallOnUiThreadAsync(() =>
                 {
                     if (result.Length > 0)
                     {
