@@ -276,6 +276,9 @@
                 var transform = await GetTransformFromDetection(det, 100f);
                 var indexer = transform.GetGenericIndexer<double>();
 
+                var tx = indexer[0, 3];
+                var ty = indexer[1, 3];
+                var tz = indexer[2, 3];
                 var yawRa = Math.Atan(indexer[1, 0] / indexer[0, 0]);
                 var pitchRa = Math.Atan(-indexer[2, 0] / Math.Sqrt(Math.Pow(indexer[2, 1], 2) + Math.Pow(indexer[2, 2], 2)));
                 var rollRa = Math.Atan(indexer[2, 1] / indexer[2, 2]);
@@ -283,11 +286,12 @@
                 var yaw = yawRa * (180 / Math.PI);
                 var pitch = pitchRa * (180 / Math.PI);
                 var roll = rollRa * (180 / Math.PI);
-                var d = Math.Sqrt(Math.Pow(indexer[0, 3], 2) + Math.Pow(indexer[1, 3], 2) + Math.Pow(indexer[2, 3], 2));
+                var d = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2) + Math.Pow(tz, 2));
 
                 await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {
-                    RotatoinText.Text = $"Distance: {d:0.000} Yaw: {yaw:0.000} Pitch: {pitch:0.000} Roll: {roll:0.000}";
+                    RotationText.Text = $"Distance: {d:0.000} Yaw: {yaw:0.000} Pitch: {pitch:0.000} Roll: {roll:0.000}";
+                    DistanceText.Text = $"Distance: {d:0.000} tx: {tx:0.000} ty: {ty:0.000} tz: {tz:0.000}";
                 });
             }
         }

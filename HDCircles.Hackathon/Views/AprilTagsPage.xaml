@@ -19,7 +19,8 @@
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <TextBlock x:Name="RotatoinText" Margin="0,0,12,0" />
+            <TextBlock x:Name="RotationText" Margin="0,0,12,0" />
+            <TextBlock x:Name="DistanceText" Margin="0,0,12,0" />
             <Button Click="EstimatePoseButton_Click" Content="Estimate Pose" />
         </StackPanel>
 
