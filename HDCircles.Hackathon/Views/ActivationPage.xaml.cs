@@ -31,6 +31,15 @@ namespace HDCircles.Hackathon.Views
 
             DJISDKManager.Instance.SDKRegistrationStateChanged += Instance_SDKRegistrationStateChanged;
 
+            if (DJISDKManager.Instance.SDKRegistrationResultCode == SDKError.NO_ERROR)
+            {
+                await Dispatcher.RunAsync(Windows.UI.Core.CoreDispatcherPriority.Normal, () =>
+                {
+                    ActivationStateTextBox.Text = SDKRegistrationState.Succeeded.ToString();
+                    ActivationResultTextBox.Text = SDKError.NO_ERROR.ToString();
+                });
+            }
+
             Loaded -= ActivationPage_Loaded;
         }
 

@@ -71,6 +71,8 @@
                     NavView.MenuItems.Add(item.Name);
                 }
             }
+
+            ContentFrame.Navigate(menuItems[1].ViewType);
         }
 
         private void NavigationView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)

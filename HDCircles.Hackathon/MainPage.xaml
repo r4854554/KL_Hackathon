@@ -17,7 +17,6 @@
         </Grid.RowDefinitions>
 
         <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
-            <AppBarButton Icon="Tag" Command="{Binding ToggleAprilTagDetectionCommand}" Label="Toggle AprilTag Detection" />
             <AppBarButton Icon="Camera" Command="{Binding TestGimbalCommand}" Label="Test Gimbal Control" />
             <AppBarButton Icon="Refresh" Command="{Binding ResetGimbalCommand}" Label="Reset Gimbal" />
             <AppBarSeparator />

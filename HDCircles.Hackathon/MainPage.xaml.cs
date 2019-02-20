@@ -38,13 +38,6 @@ namespace HDCircles.Hackathon
             DataContext = _viewModel;
 
             Loaded += MainPage_Loaded;
-
-            DjiSdkManager.Instance.StateChanged += Instance_StateChanged;
-        }
-
-        private void Instance_StateChanged(FlightState state)
-        {
-            
         }
 
         private void MainPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)

@@ -66,13 +66,22 @@
             try
             {
                 var videoFeeder = DJISDKManager.Instance.VideoFeeder;
+                var cameraHandler = DJISDKManager.Instance.ComponentManager.GetCameraHandler(0, 0);
 
                 if (null != videoFeeder)
                     videoFeeder.GetPrimaryVideoFeed(0).VideoDataUpdated -= VideoFeeder_VideoDataUpdated;
 
                 if (null != videoParser)
                 {
-                    videoParser.Uninitialize();
+                    videoParser.SetSurfaceAndVideoCallback(0, 0, null, null);
+                    // FIXME: memory leaked
+                    //videoParser.Uninitialize();
+                    videoParser = null;
+                }
+
+                if (null != cameraHandler)
+                {
+                    cameraHandler.CameraTypeChanged -= CalibrationPage_CameraTypeChanged;
                 }
 
                 Unloaded -= CalibrationPage_Unloaded;

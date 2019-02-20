@@ -90,7 +90,9 @@
 
                 if (null != videoParser)
                 {
-                    videoParser.Uninitialize();
+                    videoParser.SetSurfaceAndVideoCallback(0, 0, null, null);
+                    //videoParser.Uninitialize();
+                    videoParser = null;
                 }
 
                 if (null != cameraHandler)
@@ -108,6 +110,7 @@
             catch (Exception ex)
             {
                 // TODO: handle exception
+                Console.Write(ex.ToString());
             }
         }
 

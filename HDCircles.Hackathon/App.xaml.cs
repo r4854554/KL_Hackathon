@@ -3,6 +3,7 @@
     using Catel.IoC;
     using Catel.MVVM;
     using Catel.Services;
+    using HDCircles.Hackathon.Services;
     using HDCircles.Hackathon.ViewModels;
     using HDCircles.Hackathon.Views;
     using System;
@@ -57,6 +58,8 @@
             commandManger.CreateCommand(Commands.MainPageLoaded);
             commandManger.CreateCommand(Commands.KeyUp);
             commandManger.CreateCommand(Commands.KeyDown);
+
+            var drone = Drone.Instance;
 
             var rootFrame = Window.Current.Content as Frame;
 

@@ -1,24 +1,23 @@
 ﻿namespace HDCircles.Hackathon.ViewModels
 {
-    using AprilTagsSharp;
     using Catel.Data;
     using Catel.MVVM;
     using DJI.WindowsSDK;
     using DJI.WindowsSDK.Components;
     using DJIVideoParser;
-    using OpenCvSharp;
     using System;
-    using System.Runtime.InteropServices;
+    using System.Diagnostics;
     using System.Runtime.InteropServices.WindowsRuntime;
+    using System.Threading;
     using System.Threading.Tasks;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
-    using Windows.Storage;
-    using Windows.Storage.Streams;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+
+    using Timer = System.Timers.Timer;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -307,7 +306,6 @@
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
             TestGimbalCommand = new TaskCommand(TestGimbalExecute);
-            ToggleAprilTagDetectionCommand = new TaskCommand(ToggleAprilTagDetectionExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
@@ -357,12 +355,14 @@
 
         async Task UpdateGimbalAttitude()
         {
+            Debug.WriteLine("Thread id in attitude: " + Thread.CurrentThread.ManagedThreadId);
             var attitude = await GetGimbalHandler().GetGimbalAttitudeAsync();
 
             if (attitude.value.HasValue)
             {
                 await CallOnUiThreadAsync(() =>
                 {
+                    Debug.WriteLine("Thread id in attitude ui: " + Thread.CurrentThread.ManagedThreadId);
                     GimbalAttitude = attitude.value.Value;
                 });
             }
@@ -418,20 +418,6 @@
         int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
-        }
-
-        void CreateAprilTagDetectionWorker()
-        {
-            if (null == aprilTagDetectionWorker)
-            {
-                aprilTagDetectionWorker = new Task(DetectAprilTag);
-            }
-        }
-
-        async void DetectAprilTag()
-        {
-
-            
         }
 
         #region Components Handler
@@ -505,7 +491,7 @@
                 var cameraHandler = GetCameraHandler();
                 var gimbalHandler = GetGimbalHandler();
                 
-                fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
+                //fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
 
                 _videoParser = new Parser();
                 
@@ -520,10 +506,10 @@
 
                 CameraHandler_CameraTypeChanged(null, cameraType.value);
 
-                //stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
-                //stateTimer.Elapsed += StateTimer_Elapsed;
-                //stateTimer.AutoReset = true;
-                //stateTimer.Enabled = true;
+                stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
+                stateTimer.Elapsed += StateTimer_Elapsed;
+                stateTimer.AutoReset = true;
+                stateTimer.Enabled = false;
 
                 _isInitialized = true;
             });
@@ -782,55 +768,6 @@
             var result = await gimbalHandler.RotateBySpeedAsync(param);
         }
 
-        public ICommand ToggleAprilTagDetectionCommand { get; set; }
-        private async Task ToggleAprilTagDetectionExecute()
-        {
-            //EnableAprilTagDetection = !EnableAprilTagDetection;
-
-            frameWidth = 1280;
-            frameHeight = 960;
-
-            byte[] buffer = new byte[frameWidth * frameHeight * 3];
-
-            try
-            {
-                //lock (bufferLock)
-                //{
-                //    if (buffer.Length != frameBuffer.Length)
-                //    {
-                //        Array.Resize(ref buffer, frameBuffer.Length);
-
-                //        frameBuffer.CopyTo(buffer.AsBuffer());
-                //    }                    
-                //}
-
-                //var rgba = new Mat(frameHeight, frameWidth, MatType.CV_8UC4, buffer);
-                //var rgb = rgba.CvtColor(ColorConversionCodes.RGBA2RGB);
-                //var bytes = rgb.Width * 3 * rgb.Height;
-                //var rgbBytes = new byte[bytes];
-
-                //Marshal.Copy(rgb.Data, rgbBytes, 0, bytes);
-
-                var folder = ApplicationData.Current.LocalFolder;
-                var file = await folder.GetFileAsync("sample.bin");
-                var stream = await file.OpenAsync(FileAccessMode.Read);
-                var buf = buffer.AsBuffer();
-
-                await stream.ReadAsync(buf, (uint)(frameWidth * frameHeight * 3), InputStreamOptions.None);
-
-                var mat = new Mat(frameHeight, frameWidth, MatType.CV_8UC3, buffer);
-                var ap = new AprilTag("canny", false, "tag25h9", 0.8, 1, 400);
-
-                var result = ap.detect(mat);
-
-                //var detections = _videoParser.DetectAprilTag(buffer, frameWidth, frameHeight, AprilTagFamily.Tag25h9);
-            }
-            catch (Exception e)
-            {
-                
-            }            
-        }
-
         #endregion Commands
 
         #region Events
@@ -887,22 +824,22 @@
                 }
             }
 
-            await CallOnUiThreadAsync(async () =>
-            {
-                var now = DateTime.Now;
-                var elapsed = now - imageFpsStart;
+            //await CallOnUiThreadAsync(async () =>
+            //{
+            //    var now = DateTime.Now;
+            //    var elapsed = now - imageFpsStart;
 
-                if (elapsed >= TimeSpan.FromSeconds(1))
-                {
-                    var n = (imageFpsStart - processStart).TotalSeconds;
+            //    if (elapsed >= TimeSpan.FromSeconds(1))
+            //    {
+            //        var n = (imageFpsStart - processStart).TotalSeconds;
 
-                    ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-                    imageFpsStart = now;
-                    ImageFrameCount = 0;
-                }
+            //        ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
+            //        imageFpsStart = now;
+            //        ImageFrameCount = 0;
+            //    }
 
-                ImageFrameCount += 1;
-            });
+            //    ImageFrameCount += 1;
+            //});
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
@@ -926,19 +863,10 @@
             }
         }
 
-        private async void GimbalHandler_GimbalAttitudeChanged(object sender, Attitude? value)
-        {
-            if (value.HasValue)
-            {
-                await CoreApplication.MainView.CoreWindow.Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
-                {
-                    GimbalAttitude = value.Value;
-                });
-            }
-        }
-
         private async void StateTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            Debug.WriteLine("Thread id in timer: " + Thread.CurrentThread.ManagedThreadId);
+
             await UpdateAltitude();
             await UpdateAttitude();
             await UpdateVelocity();
