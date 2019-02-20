@@ -30,6 +30,8 @@
 
         private Thread workerThread;
 
+        private bool _isWorkerEnabled;
+
         public AprilTagsPage()
         {
             InitializeComponent();
@@ -46,6 +48,9 @@
 
             for (; ; )
             {
+                if (!_isWorkerEnabled)
+                    break;
+
                 watch.Reset();
                 watch.Start();
 
@@ -78,6 +83,7 @@
             try
             {
                 var videoFeeder = DJISDKManager.Instance.VideoFeeder;
+                var cameraHandler = DJISDKManager.Instance.ComponentManager.GetCameraHandler(0 ,0);
 
                 if (null != videoFeeder)
                     videoFeeder.GetPrimaryVideoFeed(0).VideoDataUpdated -= VideoFeeder_VideoDataUpdated;
@@ -86,6 +92,16 @@
                 {
                     videoParser.Uninitialize();
                 }
+
+                if (null != cameraHandler)
+                {
+                    cameraHandler.CameraTypeChanged -= CameraHandler_CameraTypeChanged;
+                }
+
+                _isWorkerEnabled = false;
+
+                // sleep until the worker thread exit.
+                Thread.Sleep(300);
 
                 Unloaded -= AprilTagsPage_Unloaded;
             }
@@ -130,6 +146,7 @@
                 Thread.Sleep(300);
 
                 workerThread.Start();
+                _isWorkerEnabled = true;
             }
         }
 
@@ -193,10 +210,37 @@
             objPoints.Add(new Point3f { X = tagRadius, Y = tagRadius, Z = 0 });
             objPoints.Add(new Point3f { X = -tagRadius, Y = tagRadius, Z = 0 });
 
-            imgPoints.Add(det.points[0]);
-            imgPoints.Add(det.points[1]);
-            imgPoints.Add(det.points[2]);
-            imgPoints.Add(det.points[3]);
+            switch (det.rotation)
+            {
+                case 1:                    
+                    // first quadrant
+                    imgPoints.Add(det.points[2]);
+                    imgPoints.Add(det.points[1]);
+                    imgPoints.Add(det.points[0]);
+                    imgPoints.Add(det.points[3]);
+                    break;
+                case 0:
+                    // fourth quadrant
+                    imgPoints.Add(det.points[3]);
+                    imgPoints.Add(det.points[2]);
+                    imgPoints.Add(det.points[1]);
+                    imgPoints.Add(det.points[0]);
+                    break;
+                case 3:
+                    // third quadrant
+                    imgPoints.Add(det.points[0]);
+                    imgPoints.Add(det.points[3]);
+                    imgPoints.Add(det.points[2]);
+                    imgPoints.Add(det.points[1]);
+                    break;
+                case 2:
+                    // second quadrant
+                    imgPoints.Add(det.points[1]);
+                    imgPoints.Add(det.points[0]);
+                    imgPoints.Add(det.points[3]);
+                    imgPoints.Add(det.points[2]);
+                    break;
+            }            
 
             var intrinsics = new double[3, 3]
             {
@@ -273,15 +317,17 @@
             foreach (var o in detections)
             {
                 var det = o as Detector;
+                var detIndexer = det.homography.GetGenericIndexer<double>();
+                
                 var transform = await GetTransformFromDetection(det, 100f);
                 var indexer = transform.GetGenericIndexer<double>();
 
                 var tx = indexer[0, 3];
                 var ty = indexer[1, 3];
                 var tz = indexer[2, 3];
-                var yawRa = Math.Atan(indexer[1, 0] / indexer[0, 0]);
-                var pitchRa = Math.Atan(-indexer[2, 0] / Math.Sqrt(Math.Pow(indexer[2, 1], 2) + Math.Pow(indexer[2, 2], 2)));
-                var rollRa = Math.Atan(indexer[2, 1] / indexer[2, 2]);
+                var yawRa = Math.Atan2(indexer[1, 0], indexer[0, 0]);
+                var pitchRa = Math.Atan2(-indexer[2, 0], Math.Sqrt(Math.Pow(indexer[2, 1], 2) + Math.Pow(indexer[2, 2], 2)));
+                var rollRa = Math.Atan2(indexer[2, 1], indexer[2, 2]);
 
                 var yaw = yawRa * (180 / Math.PI);
                 var pitch = pitchRa * (180 / Math.PI);
@@ -290,7 +336,8 @@
 
                 await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
                 {
-                    RotationText.Text = $"Distance: {d:0.000} Yaw: {yaw:0.000} Pitch: {pitch:0.000} Roll: {roll:0.000}";
+
+                    RotationText.Text = $"Rotation: {det.rotation} Yaw: {yaw:0.000} Pitch: {pitch:0.000} Roll: {roll:0.000}";
                     DistanceText.Text = $"Distance: {d:0.000} tx: {tx:0.000} ty: {ty:0.000} tz: {tz:0.000}";
                 });
             }
@@ -298,7 +345,7 @@
 
         private async void EstimatePoseButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
         {
-            EstimatePose();
+            //EstimatePose();
         }
     }
 }
