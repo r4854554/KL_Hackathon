@@ -52,6 +52,11 @@
         /// <param name="e">關於啟動要求和處理序的詳細資料。</param>
         protected override void OnLaunched(LaunchActivatedEventArgs e)
         {
+            //var posCtrl = new PosController();
+            //System.Diagnostics.Debug.WriteLine("PosCtrl");
+            
+            //posCtrl.Start();
+
             var dependencyResolver = this.GetDependencyResolver();
             var commandManger = dependencyResolver.Resolve<ICommandManager>();
 

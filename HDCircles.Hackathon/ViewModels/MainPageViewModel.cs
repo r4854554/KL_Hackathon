@@ -10,12 +10,23 @@
     using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Threading;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
     using Windows.System;
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+    using Dynamsoft.Barcode;
+    using Windows.Graphics.Imaging;
+    using Windows.Storage.Streams;
+    using System.ComponentModel;
+    // for LiveCharts
+    using LiveCharts;
+    using LiveCharts.Uwp;
+    using System.Drawing;
+    using System.Text.RegularExpressions;
+    using System.Collections.Generic;
 
     using Timer = System.Timers.Timer;
 
@@ -33,9 +44,16 @@
 
         private const float GIMBAL_ROTATE_STEP = 5f;
 
-        private const int PRODUCT_ID = 0;
+        private const int PRODUCT_ID    = 0;
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
+        private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
+        private BarcodeReader br = new BarcodeReader();
+       
+        /// <summary>
+        /// the instance of DJIVideoParser
+        /// </summary>
+        private Parser _videoParser;
 
         private object bufferLock = new object();
 
@@ -62,14 +80,12 @@
 
         #region Fields
         private readonly ICommandManager _commandManager;
-        private Timer stateTimer;
+        private System.Timers.Timer stateTimer;
 
         private bool _isInitialized;
 
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
+        private DjiSdk _djiSdk;
+        
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
@@ -102,6 +118,7 @@
 
         #region Properties
 
+
         /// <summary>
         /// the ui component
         /// </summary>
@@ -125,9 +142,17 @@
 
         public bool IsRegistered { get; set; }
 
-        public double ImageFrameCount
+        //public double ImageFrameCount
+        //{
+        //    get => GetValue<double>(ImageFrameCountProperty);
+        //    set
+        //    {
+        //        SetValue(ImageFrameCountProperty, value);
+        //    }
+        //}
+        public int ImageFrameCount
         {
-            get => GetValue<double>(ImageFrameCountProperty);
+            get => GetValue<int>(ImageFrameCountProperty);
             set
             {
                 SetValue(ImageFrameCountProperty, value);
@@ -277,6 +302,16 @@
         public string VelocityXText => $"x: {Velocity.x}";
         public string VelocityYText => $"y: {Velocity.y}";
         public string VelocityZText => $"z: {Velocity.z}";
+        public string DecodeText {
+            get => GetValue<string>(DecodeTextProperty);
+            set
+            {
+                SetValue(DecodeTextProperty, value);
+                RaisePropertyChanged(nameof(DecodeText));
+            }
+        }
+        
+        public static PropertyData DecodeTextProperty = RegisterProperty(nameof(DecodeText),typeof(string));
 
         public bool IsTimerEnabled
         {
@@ -305,7 +340,8 @@
             KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
-            TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            TestGimbalCommand = new TaskCommand(TestGimbalExecute);            
+            br.LicenseKeys = Dynamsoft_App_Key;
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
@@ -415,12 +451,20 @@
             }
         }
 
+
         int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
         {
             return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
         }
 
         #region Components Handler
+
+
+        WiFiHandler GetWifiHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetWiFiHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
 
         FlightControllerHandler GetFlightControllerHandler()
         {
@@ -452,6 +496,7 @@
 
         private async Task MainPageLoadedExecute()
         {
+
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
@@ -464,6 +509,7 @@
 
         private async void DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         {
+            System.Diagnostics.Debug.WriteLine("Info:DJKSDKManager_SDKRegistrationStateChanged:DJKSDKManager_SDKRegistrationStateChanged");
             IsRegistered = errorCode == SDKError.NO_ERROR;
 
             await CallOnUiThreadAsync(() =>
@@ -490,8 +536,7 @@
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
                 var gimbalHandler = GetGimbalHandler();
-                
-                //fcHandler.VelocityChanged += FlightControllerHandler_VelocityChanged;
+                var wifiHandler = GetWifiHandler();
 
                 _videoParser = new Parser();
                 
@@ -506,10 +551,21 @@
 
                 CameraHandler_CameraTypeChanged(null, cameraType.value);
 
-                stateTimer = new Timer(STATETIMER_UPDATE_FREQUENCE);
+                stateTimer = new System.Timers.Timer(STATETIMER_UPDATE_FREQUENCE);
                 stateTimer.Elapsed += StateTimer_Elapsed;
                 stateTimer.AutoReset = true;
                 stateTimer.Enabled = false;
+
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug");
+                var connection = await wifiHandler.GetConnectionAsync();
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug done {0}", connection.value.HasValue);
+                System.Diagnostics.Debug.WriteLine("WifiHandler debug done {0}", connection.error.ToString());
+                if (connection.value.HasValue)
+                {
+                    System.Diagnostics.Debug.WriteLine("Connection status:{0}", connection.value.Value); 
+                }
+
+
 
                 _isInitialized = true;
             });
@@ -639,7 +695,7 @@
                 if (null != DJISDKManager.Instance)
                 {
                     DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
-
+                    
                     var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
                     {
                         mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
@@ -805,41 +861,98 @@
 
         private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
         {
-            lock (bufferLock)
-            {
-                if (null == frameBuffer)
-                {
-                    frameBuffer = data;
-                }
-                else
-                {
-                    if (data.Length != frameBuffer.Length)
-                    {
-                        Array.Resize(ref frameBuffer, data.Length);
-                    }
+            var now = DateTime.Now;
+            var elapsed = now - imageFpsStart;
+            var frameCount = ImageFrameCount;
+            var fps = ImageFps;
 
-                    data.CopyTo(frameBuffer.AsBuffer());
-                    frameWidth = width;
-                    frameHeight = height;
-                }
+            if (elapsed >= TimeSpan.FromSeconds(1))
+            {
+                var n = (imageFpsStart - processStart).TotalSeconds;
+
+                fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
+                imageFpsStart = now;
+                frameCount = 0;
+            }
+            object lck = new object();
+            bool determinator = false;
+            lock (lck)
+            {
+                frameCount += 1;
+                determinator = frameCount % 5 == 0;
             }
 
-            //await CallOnUiThreadAsync(async () =>
-            //{
-            //    var now = DateTime.Now;
-            //    var elapsed = now - imageFpsStart;
+            //if (ImageFrameCount % 5 == 0 )
+            if (determinator)
+            {
+                new Thread(() => Decode_QRcode(data, width, height)).Start();
+            }
 
-            //    if (elapsed >= TimeSpan.FromSeconds(1))
-            //    {
-            //        var n = (imageFpsStart - processStart).TotalSeconds;
+            await CallOnUiThreadAsync(() =>
+            {
+                ImageFrameCount = frameCount;
+                ImageFps = fps;
+            });
+        }
 
-            //        ImageFps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-            //        imageFpsStart = now;
-            //        ImageFrameCount = 0;
-            //    }
+        private async void Decode_QRcode(byte[] data,int width,int height) {
+            try
+            {
+                byte[] image = new byte[width * height * 4];
+                int nWidth = width, nHeight = height;
+                int count = 0;
+                int size = data.Length / 4;
+                for (int j = 0; j < size; j++)
+                {
+                    for (int i = 3; i >= 0; i--)
+                    {
+                        image[count + i] = data[count + (3 - i)];
+                    }
+                    count += 4;
+                }
+                // ToFix: it crashes sometime, saying that 
+                TextResult[] result =
+                    br.DecodeBuffer(image, nWidth, nHeight, nWidth*4, EnumImagePixelFormat.IPF_ARGB_8888, "");
+                LocalizationResult[] pos = br.GetAllLocalizationResults();
+                
+                 await CallOnUiThreadAsync(() =>
+                {
+                    if (result.Length > 0)
+                    {
+                        DecodeText = "";
+                        for (int i = 0; i < result.Length; i++)
+                        {
+                            DecodeText += result[i].BarcodeText + "\n";
+                        }
+                    }
+                    result = null;
+                });
+            }
+            catch (System.AccessViolationException)
+            {
 
-            //    ImageFrameCount += 1;
-            //});
+            }
+            data = null;
+        }
+
+        private void FurtherProcess(TextResult[] data, LocalizationResult[] pos) {
+            Regex LocationTagReg= new Regex(@"^[A-Z]{2}[0-9]{6}$");
+            Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
+            List<int> LocationTagPos = new List<int>();
+            List<int> CartonTagPos = new List<int>();
+            int DataSize = data.Length;
+            // Classify Tag
+            for(int i =0;i<DataSize;i++) {
+                string temp = data[i].BarcodeText;
+                if (LocationTagReg.Match(temp).Success)
+                {
+                    LocationTagPos.Add(i);
+                }
+                else if (CartonTagReg.Match(temp).Success)
+                {
+                    CartonTagPos.Add(i);
+                }
+            }
         }
 
         private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
@@ -872,7 +985,7 @@
             await UpdateVelocity();
             await UpdateGimbalAttitude();
             await UpdateVideoFeedFps();
-            await UpdateChargeRemaining();
+            //await UpdateChargeRemaining();
         }
 
         private void MainPage_KeyUp(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
@@ -885,7 +998,8 @@
         private void MainPage_KeyDown(object sender, Windows.UI.Xaml.Input.KeyRoutedEventArgs e)
         {
             var key = e.Key;
-             
+
+            KeyDownCommand.Execute(key);
         }
 
         #endregion Events

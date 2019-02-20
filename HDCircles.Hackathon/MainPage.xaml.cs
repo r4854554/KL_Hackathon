@@ -51,5 +51,10 @@ namespace HDCircles.Hackathon
 
             Loaded -= MainPage_Loaded;
         }
+
+        private void HyperlinkButton_Click(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            this.Frame.Navigate(typeof(GraphPage));
+        }
     }
 }
