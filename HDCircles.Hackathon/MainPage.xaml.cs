@@ -56,5 +56,10 @@ namespace HDCircles.Hackathon
         {
             this.Frame.Navigate(typeof(GraphPage));
         }
+
+        public Canvas GetCanvas()
+        {
+            return Drawable;
+        }
     }
 }

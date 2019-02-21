@@ -106,6 +106,7 @@
             </Grid>
         </Border>
         <SwapChainPanel Grid.Row="2" x:Name="FpvSwapChainPanel" Visibility="Visible" />
+        <Canvas Grid.Row="2" x:Name="Drawable" />
         <HyperlinkButton Content="HyperlinkButton" HorizontalAlignment="Left" Margin="862,35,0,0" Grid.Row="1" VerticalAlignment="Top" Click="HyperlinkButton_Click"/>
 
 

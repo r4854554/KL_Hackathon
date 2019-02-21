@@ -31,6 +31,13 @@
     using Timer = System.Timers.Timer;
     using OpenCvSharp;
     using System.Runtime.InteropServices;
+    using Windows.Media;
+
+    using CustomVision;
+    using Windows.Storage;
+    using Windows.UI.Xaml.Media;
+    using Windows.UI.Xaml;
+    using Windows.UI.Text;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -84,6 +91,7 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
+        private ObjectDetection objectDetection;
         #endregion Constants
 
         #region Fields
@@ -354,6 +362,11 @@
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
+
+            //label here
+            List<String> labels = new List<String> { "box", "nobox" };
+            objectDetection = new ObjectDetection(labels, 20, 0.8F, 0.45F);
+            init_onnx();
         }
 
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -407,8 +420,8 @@
 
                 frameBuffer.CopyTo(buffer.AsBuffer());
             }
-
-            Decode_QRcode(buffer, width, height);
+            LocationTagDetection(buffer, width, height);
+            //Decode_QRcode(buffer, width, height);
 
             //var now = DateTime.Now;
             //var elapsed = now - imageFpsStart;
@@ -442,6 +455,151 @@
             //    ImageFrameCount = frameCount;
             //    ImageFps = fps;
             //});
+        }
+
+        private async Task<int> LocationTagDetection(byte[] data,int height, int width) {
+            // resize image to (416,416)
+            var mat = new Mat(height, width, MatType.CV_8UC4, data);
+            Mat resizemat = new Mat();
+            Cv2.CvtColor(mat, mat, ColorConversionCodes.RGBA2GRAY);
+            resizemat = mat.Clone();
+            resizemat.Resize(416, 416);
+            // Mat -> softwarebitmap
+            var length = mat.Rows * mat.Cols * mat.ElemSize();
+            var buffer = new byte[length];
+            Marshal.Copy(mat.Data, buffer, 0, length);
+            var bm = SoftwareBitmap.CreateCopyFromBuffer(buffer.AsBuffer(), BitmapPixelFormat.Gray8, width, height);
+            try
+            {
+                IList<PredictionModel> outputlist = await objectDetection.PredictImageAsync(VideoFrame.CreateWithSoftwareBitmap(bm));
+
+                foreach (var output in outputlist) {
+                    // chop origin image  
+                    Mat chop = ChopOutData(mat, output.BoundingBox, height, width);
+                    var chop_image_length = chop.Rows * chop.Cols * chop.ElemSize();
+                    var chop_image_buffer = new byte[length];
+                    Marshal.Copy(chop.Data, buffer, 0, length);
+                    br = new BarcodeReader();
+                    br.LicenseKeys = Dynamsoft_App_Key;
+                    TextResult[] result =
+                        br.DecodeBuffer(buffer, width, height, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
+                    LocalizationResult[] pos = br.GetAllLocalizationResults();
+                    // drawing result 
+                    UpdateResult(output, width, height);
+                    //switch (output.TagName)
+                    //{
+                    //    case "LocationTag":                            
+                    //        //do something
+                    //        break;
+                    //    case "box":
+                    //        //do something 
+                    //        break;
+                    //    case "nobox":
+                    //        //do something
+                    //        break;
+                    //}
+                    // Proccess the result
+
+                }
+            }
+            catch
+            {
+
+            }
+            return 0;
+        }
+
+        private Mat ChopOutData(Mat image, BoundingBox box, int height, int width) {
+            double x = (double)Math.Max(box.Left, 0);
+            double y = (double)Math.Max(box.Top, 0);
+            double w = (double)Math.Min(1 - x, box.Width);
+            double h = (double)Math.Min(1 - y, box.Height);
+
+            x = width * x;
+            y = height * y;
+            w = width * w;
+            h = height * h;
+
+            return new Mat(image,new Rect((int)x,(int)y,(int)w,(int)h)).Clone();
+        }
+
+        private async void init_onnx()
+        {
+
+            StorageFile file = await Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///AI/model.onnx"));
+            await objectDetection.Init(file);
+
+        }
+
+        private void UpdateResult(PredictionModel output,int width, int height)
+        {
+            Canvas Drawable = MainPage.GetCanvas();
+            Drawable.Children.Clear();
+            SolidColorBrush _fillBrush = new SolidColorBrush(Windows.UI.Colors.Transparent);
+            SolidColorBrush _lineBrushRed = new SolidColorBrush(Windows.UI.Colors.Red);
+            SolidColorBrush _lineBrushGreen = new SolidColorBrush(Windows.UI.Colors.Green);
+            SolidColorBrush _lineBrushBlue = new SolidColorBrush(Windows.UI.Colors.Blue);
+            SolidColorBrush color = new SolidColorBrush(Windows.UI.Colors.Blue);
+
+            var box = output.BoundingBox;
+
+            double x = (double)Math.Max(box.Left, 0);
+            double y = (double)Math.Max(box.Top, 0);
+            double w = (double)Math.Min(1 - x, box.Width);
+            double h = (double)Math.Min(1 - y, box.Height);
+
+            x = width * x;
+            y = height * y;
+            w = width * w;
+            h = height * h;
+
+            switch (output.TagName)
+            {
+                case "LocationTag":
+                    //do something
+                    color = _lineBrushBlue;
+                    break;
+                case "box":
+                    //do something 
+                    color = _lineBrushGreen;
+                    break;
+                case "nobox":
+                    //do something
+                    color = _lineBrushRed;
+                    break;
+            }
+            var r = new Windows.UI.Xaml.Shapes.Rectangle
+            {
+                Tag = box,
+                Width = w,
+                Height = h,
+                Fill = _fillBrush,
+                Stroke = color,
+                StrokeThickness = 2.0,
+                Margin = new Thickness(x, y, 0, 0)
+            };
+
+            var tb = new TextBlock
+            {
+                Margin = new Thickness(x + 4, y + 4, 0, 0),
+                Text = $"{output.TagName} ({Math.Round(output.Probability, 4)})",
+                FontWeight = FontWeights.Bold,
+                Width = 126,
+                Height = 21,
+                HorizontalTextAlignment = TextAlignment.Center
+            };
+
+            var textBack = new Windows.UI.Xaml.Shapes.Rectangle
+            {
+                Width = 134,
+                Height = 29,
+                Fill = _fillBrush,
+                Margin = new Thickness(x, y, 0, 0)
+            };
+
+            Drawable.Children.Add(textBack);
+            Drawable.Children.Add(tb);
+            Drawable.Children.Add(r);
         }
 
         #endregion Class Methods
