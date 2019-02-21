@@ -37,8 +37,8 @@ namespace HDCircles.Hackathon.Services
         //Creates a UdpClient for reading incoming data.
         //private IPEndPoint receivingEndPoint = new IPEndPoint(IPAddress.Any, 0);
         
-        UdpClient receivingUdpClient = new UdpClient(12000);
-        UdpClient sendingUdpClient = new UdpClient("192.168.31.65", _statePort);
+        //UdpClient receivingUdpClient = new UdpClient(12000);
+        UdpClient sendingUdpClient = new UdpClient("127.0.0.1", _statePort);
 
         public static CoreDispatcher Dispatcher { get; set; }
 
@@ -119,11 +119,24 @@ namespace HDCircles.Hackathon.Services
         private async Task ControlLoop()
         {
             //Debug.WriteLine($"Info:ControlLoop:Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
+            
 
+            if (_drone.CurrentState.Altitude>2)
+            {
+                Debug.Print("Info:Emergency");
 
+                _drone.EmergencyLanding();
+            }
+            
+            //DateTime localDate = DateTime.Now;
+            //Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} {udpState[0]} - yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} altitude- {_drone.CurrentState.Altitude}");
+
+        }
+        public void sendUdpDebug()
+        {
             double[] udpState = new double[10];
 
-            var j = 0;
+
             //Byte[] sendBytes = Encoding.ASCII.GetBytes("Is anybody there");
             udpState[0] = (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
             udpState[1] = _drone.CurrentState.Roll;
@@ -142,70 +155,41 @@ namespace HDCircles.Hackathon.Services
             {
                 Debug.WriteLine(e.ToString());
             }
-
-            //var data = receivingUdpClient.Receive(ref receivingEndPoint);
-            //Debug.WriteLine("received");
-
-            // receive 
-
-            //Creates an IPEndPoint to record the IP Address and port number of the sender. 
-            // The IPEndPoint will allow you to read datagrams sent from any source.
-            //IPEndPoint RemoteIpEndPoint = new IPEndPoint(IPAddress.Any, 0);
-            
-            try
-            {
-                //Debug.WriteLine($"This is the message you received {receivingUdpClient.Available}");
-                if (receivingUdpClient.Available > 0)
-                {
-                    
-                    // Blocks until a message returns on this socket from a remote host.
-                    Byte[] receiveBytes = receivingUdpClient.Receive(ref RemoteIpEndPoint);
-
-                    double[] values = new double[receiveBytes.Length / 8];
-
-                    Debug.WriteLine("This is the message you received 1");
-                    Buffer.BlockCopy(receiveBytes, 0, values, 0, values.Length * 8);
-
-                    //string returnData = Encoding.ASCII.GetString(receiveBytes);
-
-
-                    Debug.WriteLine("This is the message you received " +
-                                                 values[0].ToString());
-
-                    Debug.WriteLine("This is the message you received " +
-                                                 values[4].ToString());
-                    Debug.WriteLine("This message was sent from " +
-                                                RemoteIpEndPoint.Address.ToString() +
-                                                " on their port number " +
-                                                RemoteIpEndPoint.Port.ToString());
-                }
-            }
-            catch (Exception e)
-            {
-                Debug.WriteLine(e.ToString());
-            }
-
-            //
-            DateTime localDate = DateTime.Now;
-            //Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} {udpState[0]} - yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} altitude- {_drone.CurrentState.Altitude}");
-
         }
 
-        //private void ProcessReceive(IAsyncResult result)
+        //try
         //{
-        //    var state = (UdpState)result.AsyncState;
-        //    var u = state.u;
-        //    var e = state.e;
-        //    var data = u.EndReceive(result, ref e);
+        //    //Debug.WriteLine($"This is the message you received {receivingUdpClient.Available}");
+        //    if (receivingUdpClient.Available > 0)
+        //    {
 
-        //    var doubleValues = new double[data.Length / 8];
+        //        // Blocks until a message returns on this socket from a remote host.
+        //        Byte[] receiveBytes = receivingUdpClient.Receive(ref RemoteIpEndPoint);
 
-        //    Buffer.BlockCopy(data, 0, doubleValues, 0, data.Length);
+        //        double[] values = new double[receiveBytes.Length / 8];
 
-        //    Debug.WriteLine(string.Join(",", doubleValues));
+        //        Debug.WriteLine("This is the message you received 1");
+        //        Buffer.BlockCopy(receiveBytes, 0, values, 0, values.Length * 8);
 
-        //    receivingUdpClient.BeginReceive(ProcessReceive, state);
+        //        //string returnData = Encoding.ASCII.GetString(receiveBytes);
+
+
+        //        Debug.WriteLine("This is the message you received " +
+        //                                     values[0].ToString());
+
+        //        Debug.WriteLine("This is the message you received " +
+        //                                     values[4].ToString());
+        //        Debug.WriteLine("This message was sent from " +
+        //                                    RemoteIpEndPoint.Address.ToString() +
+        //                                    " on their port number " +
+        //                                    RemoteIpEndPoint.Port.ToString());
+        //    }
         //}
+        //catch (Exception e)
+        //{
+        //    Debug.WriteLine(e.ToString());
+        //}
+
     }
 
 

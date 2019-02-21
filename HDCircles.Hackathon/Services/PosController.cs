@@ -5,11 +5,11 @@ namespace HDCircles.Hackathon
 {
     public class PosController
     {
-        private Thread _thread;
+        
 
         public PosController()
         {
-            _thread = new Thread(Thread_Run);
+           
         }
 
         public void Start()
@@ -21,7 +21,6 @@ namespace HDCircles.Hackathon
         {
             var isReg = errorCode == SDKError.NO_ERROR;
 
-            _thread.Start();
         }
 
         private void Thread_Run()

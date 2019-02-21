@@ -590,8 +590,28 @@
         private async Task LandingExecute()
         {
             var fcHandler = GetFlightControllerHandler();
-
+            
+            await ResetJoystickExecute();
             await fcHandler.StartAutoLandingAsync();
+            var  isFlyingResult = await fcHandler.GetIsFlyingAsync();
+            if (isFlyingResult.value.HasValue)
+            {
+                var isFlying = isFlyingResult.value.Value.value;
+                while (isFlying)
+                {
+
+                    var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
+                    if (confirmationNeeded.value.HasValue)
+                    {
+                        await fcHandler.ConfirmLandingAsync();
+                    }
+                    isFlyingResult = await fcHandler.GetIsFlyingAsync();
+                    if (isFlyingResult.value.HasValue) { isFlying = isFlyingResult.value.Value.value; }
+
+                }
+            }
+            
+
         }
 
         #endregion Landing Command
@@ -693,19 +713,19 @@
                 {
                     DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
                     
-                    var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
-                    {
-                        mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
-                        pitch = gimbalPitch,
-                        roll = gimbalRoll,
-                        yaw = gimbalYaw,
-                        pitchIgnored = false,
-                        rollIgnored = true,
-                        yawIgnored = true,
-                        duration = 1
-                    });
+                    //var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
+                    //{
+                    //    mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
+                    //    pitch = gimbalPitch,
+                    //    roll = gimbalRoll,
+                    //    yaw = gimbalYaw,
+                    //    pitchIgnored = false,
+                    //    rollIgnored = true,
+                    //    yawIgnored = true,
+                    //    duration = 1
+                    //});
 
-                    await UpdateCurrentState("RotateGimbalByAngle: " + result.ToString());
+                    await UpdateCurrentState("Virtual Joystick Update! " );
                 }
             }
             catch (Exception ex)
