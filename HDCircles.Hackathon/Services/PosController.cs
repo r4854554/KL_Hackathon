@@ -62,6 +62,8 @@ namespace HDCircles.Hackathon
 
         private long WorkFrequence = 250L;
 
+        private bool _isRunning;
+
         private static PosController _instance;
 
         public static PosController Instance
@@ -96,7 +98,11 @@ namespace HDCircles.Hackathon
         {
             var isReg = errorCode == SDKError.NO_ERROR;
 
+            if (_isRunning)
+                return;
+
             _thread.Start();
+            _isRunning = true;
         }
 
         private void Thread_Run()

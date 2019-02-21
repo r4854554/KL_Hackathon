@@ -36,6 +36,8 @@
 
         private Thread workerThread;
 
+        private bool _isRunning;
+
         private static QrcodeDetector _instance;
 
         public static QrcodeDetector Instance
@@ -120,9 +122,13 @@
         {
             var isReg = state == SDKRegistrationState.Succeeded && errorCode == SDKError.NO_ERROR;
 
+            if (_isRunning)
+                return;
+
             if (isReg)
             {
                 workerThread.Start();
+                _isRunning = true;
             }
         }
     }
