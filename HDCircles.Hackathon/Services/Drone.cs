@@ -1,8 +1,10 @@
 ﻿using DJI.WindowsSDK;
 using DJI.WindowsSDK.Components;
+using DJIVideoParser;
 using System;
 using System.ComponentModel;
 using System.Diagnostics;
+using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -23,6 +25,20 @@ namespace HDCircles.Hackathon.Services
             Pitch = pitch;
             Roll = roll;
             Error = error;
+        }
+    }
+
+    public struct LiveFrame
+    {
+        public byte[] Data { get; }
+        public int Width { get; }
+        public int Height { get; }
+
+        public LiveFrame(byte[] data, int width, int height)
+        {
+            Data = data;
+            Width = width;
+            Height = height;
         }
     }
 
@@ -47,9 +63,22 @@ namespace HDCircles.Hackathon.Services
             }
         }
 
+        /// <summary>
+        /// State Update Frequence
+        /// </summary>
         private long updateFrequence = 100L; // milliseconds
-
+                
         private object _stateLock = new object();
+
+        private object _frameLock = new object();
+
+        private Parser VideoParser;
+
+        private byte[] frameBuffer;
+
+        private int frameWidth;
+
+        private int frameHeight;
 
         /// <summary>
         /// indicates whether the sdk instance is able to connect
@@ -84,11 +113,34 @@ namespace HDCircles.Hackathon.Services
             backgroundWorker.DoWork += BackgroundWorker_DoWork;
 
             //_workerThread = new Thread(BackgroundWorker_DoWork);
-
+            VideoParser = new Parser();
             DJISDKManager.Instance.SDKRegistrationStateChanged += OnSdkRegistrationStateChanged;
 
             //_workerThread.Start();
             backgroundWorker.RunWorkerAsync();
+        }
+
+        public LiveFrame GetLiveFrame()
+        {
+            byte[] buffer;
+            int width, height;
+
+            lock (_frameLock)
+            {
+                if (frameWidth == 0 || frameHeight == 0)
+                    return default(LiveFrame);
+
+                buffer = new byte[frameWidth * frameHeight * 4];
+
+                frameBuffer.CopyTo(buffer.AsBuffer());
+
+                width = frameWidth;
+                height = frameHeight;
+            }
+
+            var liveFrame = new LiveFrame(buffer, width, height);
+
+            return liveFrame;
         }
 
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -121,17 +173,12 @@ namespace HDCircles.Hackathon.Services
                 elapsed = watch.ElapsedMilliseconds;
                 sleepTime = (int)Math.Max(updateFrequence - elapsed, 0L);
 
-                Debug.WriteLine($"Background thread id: {Thread.CurrentThread.ManagedThreadId}");
-                Debug.WriteLine("elapsed: " + watch.Elapsed.TotalMilliseconds);
-
                 Thread.Sleep(sleepTime);
             }
         }
 
         private async Task CollectData()
         {
-            Debug.WriteLine($"Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
-
             var attitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAttitudeAsync();
             var altitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAltitudeAsync();
 
@@ -160,7 +207,7 @@ namespace HDCircles.Hackathon.Services
                     StateChanged.Invoke(currentState);
                 }
 
-                Debug.WriteLine($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
+                //Debug.WriteLine($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
             }
         }
 
@@ -172,6 +219,35 @@ namespace HDCircles.Hackathon.Services
             {
                 _isWorkerEnabled = true;
                 fcHandler = DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0);
+                
+                var videoFeeder = DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(0);
+                var cameraHandler = DJISDKManager.Instance.ComponentManager.GetCameraHandler(0, 0);
+
+                if (null != videoFeeder)
+                {
+                    VideoParser = new Parser();
+                    VideoParser.Initialize((byte[] data) =>
+                    {
+                        return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(0, data);
+                    });
+                    VideoParser.SetSurfaceAndVideoCallback(0, 0, null, OnFrameParsed);
+
+                    videoFeeder.VideoDataUpdated += Drone_VideoDataUpdated; ;
+                }
+
+                if (null != cameraHandler)
+                {
+                    var res = cameraHandler.GetCameraTypeAsync();
+
+                    res.Wait();
+
+                    if (res.Result.error == SDKError.NO_ERROR)
+                    {
+                        Drone_CameraTypeChanged(null, res.Result.value);
+                    }
+
+                    cameraHandler.CameraTypeChanged += Drone_CameraTypeChanged; ;
+                }
             }
             else
             {
@@ -180,6 +256,60 @@ namespace HDCircles.Hackathon.Services
             }
 
             Thread.Sleep(300);
+        }
+
+        private void Drone_CameraTypeChanged(object sender, CameraTypeMsg? value)
+        {
+            if (value.HasValue)
+            {
+                var acCamType = AircraftCameraType.Others;
+
+                switch (value.Value.value)
+                {
+                    case CameraType.MAVIC_2_PRO:
+                        acCamType = AircraftCameraType.Mavic2Pro;
+                        break;
+                    case CameraType.MAVIC_2_ZOOM:
+                        acCamType = AircraftCameraType.Mavic2Zoom;
+                        break;
+                }
+
+                if (null != VideoParser)
+                {
+                    VideoParser.SetCameraSensor(acCamType);
+                }
+            }
+        }
+
+        private void Drone_VideoDataUpdated(VideoFeed sender, byte[] bytes)
+        {
+            if (null != VideoParser)
+            {
+                VideoParser.PushVideoData(0, 0, bytes, bytes.Length);
+            }
+        }
+
+        private void OnFrameParsed(byte[] data, int width, int height)
+        {
+            lock (_frameLock)
+            {
+                if (null == frameBuffer)
+                {
+                    frameBuffer = data;
+                }
+                else
+                {
+                    if (frameBuffer.Length != data.Length)
+                    {
+                        Array.Resize(ref frameBuffer, data.Length);
+                    }
+
+                    data.CopyTo(frameBuffer.AsBuffer());
+                }
+
+                frameWidth = width;
+                frameHeight = height;
+            }
         }
     }
 }

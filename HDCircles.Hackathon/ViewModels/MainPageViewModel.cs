@@ -10,7 +10,6 @@
     using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Threading;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
@@ -18,8 +17,6 @@
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
     using Dynamsoft.Barcode;
-    using Windows.Graphics.Imaging;
-    using Windows.Storage.Streams;
     using System.ComponentModel;
     // for LiveCharts
     using LiveCharts;

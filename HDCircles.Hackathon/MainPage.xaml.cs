@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-namespace HDCircles.Hackathon
+﻿namespace HDCircles.Hackathon
 {
     using Catel.IoC;
     using Catel.MVVM;

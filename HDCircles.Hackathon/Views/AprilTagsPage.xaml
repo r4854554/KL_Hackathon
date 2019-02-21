@@ -14,17 +14,13 @@
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
         <StackPanel Grid.Row="0" Orientation="Horizontal">
-            <TextBlock x:Name="RotationText" Margin="0,0,12,0" />
-            <TextBlock x:Name="DistanceText" Margin="0,0,12,0" />
-            <Button Click="EstimatePoseButton_Click" Content="Estimate Pose" />
+            <TextBlock x:Name="PoseText" Margin="0,0,12,0" />
         </StackPanel>
 
         <TextBlock Grid.Row="1" Text="Live Feed" />
-        <SwapChainPanel Grid.Row="2" x:Name="LiveFeedPanel" Visibility="Visible" />
+        <Image Grid.Row="2" x:Name="LiveFeedImage" Stretch="UniformToFill" />
     </Grid>
 </Page>

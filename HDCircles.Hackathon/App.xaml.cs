@@ -64,7 +64,11 @@
             commandManger.CreateCommand(Commands.KeyUp);
             commandManger.CreateCommand(Commands.KeyDown);
 
+            /// initialize the instance
             var drone = Drone.Instance;
+            var posController = PosController.Instance;
+
+            posController.Start();
 
             var rootFrame = Window.Current.Content as Frame;
 
