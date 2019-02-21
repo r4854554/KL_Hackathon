@@ -120,6 +120,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\Drone.cs" />
+    <Compile Include="Services\QrcodeDetector.cs" />
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
     </Compile>

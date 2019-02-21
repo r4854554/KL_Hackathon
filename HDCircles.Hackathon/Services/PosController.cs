@@ -60,7 +60,7 @@ namespace HDCircles.Hackathon
 
         private object updateLock = new object();
 
-        private long WorkFrequence = 200L;
+        private long WorkFrequence = 250L;
 
         private static PosController _instance;
 

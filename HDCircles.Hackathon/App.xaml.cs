@@ -70,6 +70,8 @@
 
             posController.Start();
 
+            var qrcodeDetector = QrcodeDetector.Instance;
+
             var rootFrame = Window.Current.Content as Frame;
 
             // 當視窗中已有內容時，不重複應用程式初始化，

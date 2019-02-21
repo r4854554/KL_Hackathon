@@ -39,7 +39,6 @@
             var vm = ((MainPage)sender)._viewModel;
 
             vm.MainPage = this;
-            vm.SwapChainPanel = FpvSwapChainPanel;
             
             _commandManager.ExecuteCommand(Commands.MainPageLoaded);
 

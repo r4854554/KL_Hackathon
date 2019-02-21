@@ -2,8 +2,10 @@
 {
     using DJI.WindowsSDK;
     using HDCircles.Hackathon.Services;
+    using OpenCvSharp;
     using System;
     using System.Diagnostics;
+    using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using Windows.UI.Core;
@@ -12,6 +14,8 @@
 
     public sealed partial class AprilTagsPage : Page
     {
+        private object _frameLock = new object();
+
         private WriteableBitmap LiveFrameSource { get; set; }
 
         public AprilTagsPage()
@@ -68,19 +72,29 @@
         {
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
             {
-                var frame = pose.Frame;
-
-                if (LiveFrameSource == null || LiveFrameSource.PixelWidth != frame.Width || LiveFrameSource.PixelHeight != frame.Height)
+                lock (_frameLock)
                 {
-                    LiveFrameSource = new WriteableBitmap(frame.Width, frame.Height);
+                    var frame = pose.Frame;
+                    var bgraData = new byte[frame.Data.Length];
 
-                    LiveFeedImage.Source = LiveFrameSource;
+                    var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+                    var bgraMat = new Mat();
+
+                    Cv2.CvtColor(srcMat, bgraMat, ColorConversionCodes.RGBA2BGRA);
+
+                    Marshal.Copy(bgraMat.Data, bgraData, 0, frame.Data.Length);
+
+                    if (LiveFrameSource == null || LiveFrameSource.PixelWidth != frame.Width || LiveFrameSource.PixelHeight != frame.Height)
+                    {
+                        LiveFrameSource = new WriteableBitmap(frame.Width, frame.Height);
+                        LiveFeedImage.Source = LiveFrameSource;
+                    }
+
+                    bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
+
+                    LiveFrameSource.Invalidate();
+                    PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
                 }
-
-                frame.Data.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
-
-                LiveFrameSource.Invalidate();
-                PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
             });
         }
     }

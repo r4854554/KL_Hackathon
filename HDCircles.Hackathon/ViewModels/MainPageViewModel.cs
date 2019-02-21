@@ -28,6 +28,9 @@
     using Timer = System.Timers.Timer;
     using OpenCvSharp;
     using System.Runtime.InteropServices;
+    using HDCircles.Hackathon.Services;
+    using Windows.UI.Xaml.Media.Imaging;
+    using System.Linq;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -47,28 +50,19 @@
         private const int PRODUCT_INDEX = 0;
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
-        private BarcodeReader br;
-
-        private BackgroundWorker backgroundWorker;
 
         private bool _enableQrcodeDetection;
 
         private long qrcodeDetectFrequence = 250L;
-       
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
 
-        private object bufferLock = new object();
+        private object frameLock = new object();
 
-        private byte[] frameBuffer;
-
-        private int frameWidth;
-
-        private int frameHeight;
-
-        private Task aprilTagDetectionWorker;
+        public WriteableBitmap LiveFrameSource
+        {
+            get => GetValue<WriteableBitmap>(LiveFrameSourceProperty);
+            set => SetValue(LiveFrameSourceProperty, value);
+        }
+        public static readonly PropertyData LiveFrameSourceProperty = RegisterProperty(nameof(LiveFrameSource), typeof(WriteableBitmap));
         
         /// <summary>
         /// for joystick parameters
@@ -126,14 +120,7 @@
         /// </summary>
         public MainPage MainPage { get; set; }
 
-        /// <remark>
-        /// will be set at loaded event of the page
-        /// </remark>
-        public SwapChainPanel SwapChainPanel { get; set; }
-
         public static CoreDispatcher Dispatcher { get; set; }
-
-        public bool EnableAprilTagDetection { get; set; }
 
         public string SdkAppKey
         {
@@ -335,10 +322,6 @@
             ImageFrameCount = 0;
             SdkAppKey = APP_KEY;
 
-            backgroundWorker = new BackgroundWorker();
-            backgroundWorker.DoWork += BackgroundWorker_DoWork;
-            backgroundWorker.RunWorkerAsync();
-
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
             LandingCommand = new TaskCommand(LandingExecute);
@@ -351,94 +334,6 @@
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
-        }
-
-        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            var watch = Stopwatch.StartNew();
-            var elapsed = 0L;
-            var sleepTime = 0;
-
-            for (; ; )
-            {
-                watch.Restart();
-
-                if (!_enableQrcodeDetection || !IsRegistered || !_isInitialized)
-                {
-                    watch.Stop();
-
-                    elapsed = watch.ElapsedMilliseconds;
-                    sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
-
-                    Thread.Sleep(sleepTime);
-                    continue;
-                }
-
-                DoDetection().Wait();
-
-                watch.Stop();
-
-                elapsed = watch.ElapsedMilliseconds;
-                sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
-
-                Thread.Sleep(sleepTime);
-            }
-        }
-
-        private async Task DoDetection()
-        {
-            var buffer = default(byte[]);
-            int width, height;
-
-            lock (bufferLock)
-            {
-                if (frameWidth == 0 || frameHeight == 0)
-                {
-                    return;
-                }
-
-                width = frameWidth;
-                height = frameHeight;
-
-                buffer = new byte[frameWidth * frameHeight * 4];
-
-                frameBuffer.CopyTo(buffer.AsBuffer());
-            }
-
-            Decode_QRcode(buffer, width, height);
-
-            //var now = DateTime.Now;
-            //var elapsed = now - imageFpsStart;
-            //var frameCount = ImageFrameCount;
-            //var fps = ImageFps;
-
-            //if (elapsed >= TimeSpan.FromSeconds(1))
-            //{
-            //    var n = (imageFpsStart - processStart).TotalSeconds;
-
-            //    fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-            //    imageFpsStart = now;
-            //    frameCount = 0;
-            //}
-            //object lck = new object();
-            //bool determinator = false;
-            //lock (lck)
-            //{
-            //    frameCount += 1;
-            //    determinator = frameCount % 5 == 0;
-            //}
-
-            //if (ImageFrameCount % 5 == 0 )
-            //if (determinator)
-            //{
-            //    new Thread(() => Decode_QRcode(data, width, height)).Start();
-            //}
-
-            //await CallOnUiThreadAsync(() =>
-            //{
-            //    ImageFrameCount = frameCount;
-            //    ImageFps = fps;
-            //});
         }
 
         #endregion Class Methods
@@ -458,16 +353,6 @@
             {
                 CurrentStateText = message;
             });
-        }
-
-        async Task StartRecording()
-        {
-            var result = await GetCameraHandler().StartRecordAsync();
-
-            if (result != SDKError.NO_ERROR)
-            {
-
-            }
         }
 
         async Task UpdateAttitude()
@@ -545,12 +430,6 @@
             }
         }
 
-
-        int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
-        {
-            return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
-        }
-
         #region Components Handler
 
 
@@ -590,13 +469,12 @@
 
         private async Task MainPageLoadedExecute()
         {
-
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            
-            if(sdkManager.appActivationState != AppActivationState.ACTIVATED)
-                sdkManager.RegisterApp(SdkAppKey);
+
+            if (sdkManager.SDKRegistrationResultCode == SDKError.NO_ERROR)
+                DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState.Succeeded, SDKError.NO_ERROR);
 
             await Task.Delay(100);
         }
@@ -627,28 +505,12 @@
                     rootGrid.KeyUp += MainPage_KeyUp;
                 }
 
+                QrcodeDetector.Instance.QrcodeDetected += Instance_QrcodeDetected;
+
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
                 var gimbalHandler = GetGimbalHandler();
                 var wifiHandler = GetWifiHandler();
-
-                _videoParser = new Parser();
-                
-                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
-                _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, null, VideoParserVideoDataCallback);
-
-                DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
-
-                cameraHandler.CameraTypeChanged += CameraHandler_CameraTypeChanged;
-
-                var cameraType = await cameraHandler.GetCameraTypeAsync();
-
-                CameraHandler_CameraTypeChanged(null, cameraType.value);
-
-                stateTimer = new System.Timers.Timer(STATETIMER_UPDATE_FREQUENCE);
-                stateTimer.Elapsed += StateTimer_Elapsed;
-                stateTimer.AutoReset = true;
-                stateTimer.Enabled = false;
 
                 System.Diagnostics.Debug.WriteLine("WifiHandler debug");
                 var connection = await wifiHandler.GetConnectionAsync();
@@ -661,6 +523,41 @@
 
                 _enableQrcodeDetection = true;
                 _isInitialized = true;
+
+                Thread.Sleep(300);
+            });
+        }
+
+        private async void Instance_QrcodeDetected(QrcodeDetection qrcode)
+        {
+            if (qrcode.Results == null || qrcode.Results.Length == 0)
+                return;
+
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                lock (frameLock)
+                {
+                    var frame = qrcode.Frame;
+                    var bgraData = new byte[frame.Data.Length];
+
+                    var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+                    var bgraMat = new Mat();
+
+                    Cv2.CvtColor(srcMat, bgraMat, ColorConversionCodes.RGBA2BGRA);
+
+                    Marshal.Copy(bgraMat.Data, bgraData, 0, frame.Data.Length);
+
+                    if (LiveFrameSource == null || LiveFrameSource.PixelWidth != frame.Width || LiveFrameSource.PixelHeight != frame.Height)
+                    {
+                        LiveFrameSource = new WriteableBitmap(frame.Width, frame.Height);
+                    }
+
+                    bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
+
+                    LiveFrameSource.Invalidate();
+
+                    DecodeText = string.Join("\n", qrcode.Results.Select(x => x.BarcodeText).ToList());
+                }
             });
         }
 
@@ -947,35 +844,13 @@
             }
         }
 
-        private void VideoFeed_VideoDataUpdated(VideoFeed sender, byte[] bytes)
-        {
-            _videoParser.PushVideoData(PRODUCT_ID, PRODUCT_INDEX, bytes, bytes.Length);
-        }
-
-        private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
-        {
-            lock (bufferLock)
-            {
-                if (null == frameBuffer)
-                {
-                    frameBuffer = data;
-                }
-                else
-                {
-                    if (frameBuffer.Length != data.Length)
-                    {
-                        Array.Resize(ref frameBuffer, data.Length);
-                    }
-
-                    data.CopyTo(frameBuffer.AsBuffer());
-                }
-
-                frameWidth = width;
-                frameHeight = height;
-            }
-        }
-
         private async Task Decode_QRcode(byte[] data,int width,int height) {
+
+            if (null == data || data.Length == 0)
+            {
+                return;
+            }
+
             try
             {
                 var mat = new Mat(height, width, MatType.CV_8UC4, data);
@@ -983,7 +858,8 @@
 
                 Cv2.CvtColor(mat, gray, ColorConversionCodes.RGBA2GRAY);
 
-                var length = gray.Rows * gray.Cols * gray.ElemSize();
+                var stride = gray.Cols * gray.ElemSize();
+                var length = gray.Rows * stride;
                 var buffer = new byte[length];
 
                 Marshal.Copy(gray.Data,  buffer, 0, length);
@@ -1001,11 +877,15 @@
                 //    count += 4;
                 //}
                 // ToFix: it crashes sometime, saying that 
-                br = new BarcodeReader();
+                var br = new BarcodeReader();
                 br.LicenseKeys = Dynamsoft_App_Key;
-                TextResult[] result =
-                    br.DecodeBuffer(buffer, width, height, gray.Cols * gray.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
-                LocalizationResult[] pos = br.GetAllLocalizationResults();
+                TextResult[] result = br.DecodeBuffer(
+                    buffer, 
+                    width, 
+                    height, 
+                    stride, 
+                    EnumImagePixelFormat.IPF_GrayScaled,
+                    "");
                 
                 await CallOnUiThreadAsync(() =>
                 {
@@ -1044,27 +924,6 @@
                 {
                     CartonTagPos.Add(i);
                 }
-            }
-        }
-
-        private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
-        {
-            var unboxed = value ?? new CameraTypeMsg { };
-
-            if (null == _videoParser)
-                return;
-
-            switch (unboxed.value)
-            {
-                case CameraType.MAVIC_2_ZOOM:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Mavic2Zoom);
-                    break;
-                case CameraType.MAVIC_2_PRO:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Mavic2Pro);
-                    break;
-                default:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Others);
-                    break;
             }
         }
 

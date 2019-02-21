@@ -105,9 +105,7 @@
                 </StackPanel>
             </Grid>
         </Border>
-        <SwapChainPanel Grid.Row="2" x:Name="FpvSwapChainPanel" Visibility="Visible" />
+        <Image Grid.Row="2" Source="{Binding LiveFrameSource}" Stretch="UniformToFill" Visibility="Visible" />
         <HyperlinkButton Content="HyperlinkButton" HorizontalAlignment="Left" Margin="862,35,0,0" Grid.Row="1" VerticalAlignment="Top" Click="HyperlinkButton_Click"/>
-
-
     </Grid>
 </Page>
