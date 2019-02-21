@@ -58,7 +58,10 @@
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
         private BarcodeReader br;
-
+        private Regex LocationTagReg = new Regex(@"^[A-Z]{2}[0-9]{6}$");
+        private Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
+        public List<string> ResultLocation = new List<string>();
+        public List<List<string> > ResultCarton = new List<List<string> >();
         private BackgroundWorker backgroundWorker;
 
         private bool _enableQrcodeDetection;
@@ -364,9 +367,10 @@
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
 
             //label here
-            List<String> labels = new List<String> { "box", "nobox" };
+            List<String> labels = new List<String> { "Box", "Nobox" };
             objectDetection = new ObjectDetection(labels, 20, 0.8F, 0.45F);
             init_onnx();
+            Thread.Sleep(100);
         }
 
         private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
@@ -420,7 +424,7 @@
 
                 frameBuffer.CopyTo(buffer.AsBuffer());
             }
-            LocationTagDetection(buffer, width, height);
+            int check = await ScanFrame(buffer, width, height);
             //Decode_QRcode(buffer, width, height);
 
             //var now = DateTime.Now;
@@ -457,18 +461,18 @@
             //});
         }
 
-        private async Task<int> LocationTagDetection(byte[] data,int height, int width) {
+        private async Task<int> ScanFrame(byte[] data,int height, int width) {
             // resize image to (416,416)
             var mat = new Mat(height, width, MatType.CV_8UC4, data);
             Mat resizemat = new Mat();
-            Cv2.CvtColor(mat, mat, ColorConversionCodes.RGBA2GRAY);
             resizemat = mat.Clone();
+            Cv2.CvtColor(mat, mat, ColorConversionCodes.RGBA2GRAY);
             resizemat.Resize(416, 416);
             // Mat -> softwarebitmap
-            var length = mat.Rows * mat.Cols * mat.ElemSize();
+            var length = resizemat.Rows * resizemat.Cols * resizemat.ElemSize();
             var buffer = new byte[length];
             Marshal.Copy(mat.Data, buffer, 0, length);
-            var bm = SoftwareBitmap.CreateCopyFromBuffer(buffer.AsBuffer(), BitmapPixelFormat.Gray8, width, height);
+            var bm = SoftwareBitmap.CreateCopyFromBuffer(buffer.AsBuffer(), BitmapPixelFormat.Rgba8, width, height);
             try
             {
                 IList<PredictionModel> outputlist = await objectDetection.PredictImageAsync(VideoFrame.CreateWithSoftwareBitmap(bm));
@@ -483,9 +487,53 @@
                     br.LicenseKeys = Dynamsoft_App_Key;
                     TextResult[] result =
                         br.DecodeBuffer(buffer, width, height, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
-                    LocalizationResult[] pos = br.GetAllLocalizationResults();
+                    
+                    switch (output.TagName) {
+  
+                        case "Box":
+                            if (result.Length < 2)
+                                return -1;
+                            string LocationTag = "";
+                            List<string> CartonTag = new List<string>();
+                            foreach (var pick in result)
+                            {
+                                if (LocationTagReg.Match(pick.BarcodeText).Success) {
+                                    LocationTag = pick.BarcodeText;
+                                }else if (CartonTagReg.Match(pick.BarcodeText).Success)
+                                {
+                                    CartonTag.Add(pick.BarcodeText);
+                                }
+                                int index = ResultLocation.IndexOf(LocationTag);
+                                if ( index == -1)
+                                {
+                                    ResultLocation.Add(LocationTag);
+                                    ResultCarton.Add(CartonTag);
+                                }
+                                else
+                                {
+                                    ResultCarton[index] = CartonTag;
+                                }
+                            }
+                            break;
+                        case "NoBox":
+                            if (result.Length !=  1)
+                                return -1;
+                            int i_dx = ResultLocation.IndexOf(result[0].BarcodeText);
+                            if (i_dx == -1) {
+                                ResultLocation.Add(result[0].BarcodeText);
+                                ResultCarton.Add(new List<string>());
+                            }
+                            else
+                            {
+                                ResultCarton[i_dx] = new List<string>();
+                            }
+                            break;                           
+                    }
+                    UpdateDecodeText();
+                    //LocalizationResult[] pos = br.GetAllLocalizationResults();
                     // drawing result 
-                    UpdateResult(output, width, height);
+                    // width & height should be the actualwidth and actualheight of the canvas 
+                    //UpdateResult(output, width, height);
                     //switch (output.TagName)
                     //{
                     //    case "LocationTag":                            
@@ -523,12 +571,29 @@
             return new Mat(image,new Rect((int)x,(int)y,(int)w,(int)h)).Clone();
         }
 
+        private async void UpdateDecodeText()
+        {
+            await CallOnUiThreadAsync(() =>
+            {
+                DecodeText = "";
+                int index = ResultLocation.Count;
+                for(int i = 0; i < index; i++)
+                {
+                    DecodeText += ResultLocation[i] + " -> ";
+                    foreach(string carton in ResultCarton[i])
+                    {
+                        DecodeText += carton + " ";
+                    }
+                    DecodeText += "\n";
+                }
+            });
+        }
+
         private async void init_onnx()
         {
 
             StorageFile file = await Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///AI/model.onnx"));
             await objectDetection.Init(file);
-
         }
 
         private void UpdateResult(PredictionModel output,int width, int height)
