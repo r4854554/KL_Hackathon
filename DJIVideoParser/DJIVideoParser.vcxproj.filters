@@ -14,6 +14,9 @@
     <Filter Include="RenderSurface\Renderer\CalibrationVideoFeedRenderer">
       <UniqueIdentifier>{fadcb302-8603-41ff-9e9f-5ce7bdd56c9a}</UniqueIdentifier>
     </Filter>
+    <Filter Include="bck">
+      <UniqueIdentifier>{4ffd97d7-e917-4460-9454-edb04ba3a304}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="pch.cpp" />

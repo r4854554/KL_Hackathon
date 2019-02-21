@@ -161,7 +161,7 @@ namespace HDCircles.Hackathon.Services
                     StateChanged.Invoke(_currentState);
                 }
                 DateTime localDate = DateTime.Now;
-                Debug.WriteLine($"Info:CollectData:{localDate.Millisecond:G} - yaw: {yaw} pitch - {pitch} roll - {roll} altitude - {altitudeValue}");
+                //Debug.WriteLine($"Info:CollectData:{localDate.Millisecond:G} - yaw: {yaw} pitch - {pitch} roll - {roll} altitude - {altitudeValue}");
                 //Debug.WriteLine($"yaw: {_currentState.Yaw} pitch: {_currentState.Pitch} roll: {_currentState.Roll} altitude: {_currentState.Altitude}");
             }
         }

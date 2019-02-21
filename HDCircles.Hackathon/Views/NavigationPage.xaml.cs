@@ -71,6 +71,16 @@ namespace HDCircles.Hackathon.Views
                 Tag = nameof(AprilTagsPage),
                 ViewType = typeof(AprilTagsPage),
             });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Controller",
+            });
+            //menuItems.Add(new NavigationMenuItem
+            //{
+            //    Name = "Controller Tunning",
+            //    Tag = nameof(GraphPage),
+            //    ViewType = typeof(GraphPage),
+            //});
 
             // initialize navigation menu items
             foreach (var item in menuItems)
