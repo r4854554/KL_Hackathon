@@ -17,7 +17,7 @@ namespace HDCircles.Hackathon.Services
 {
 
 
-    public class DroneController
+    public class FlightStacks
     {
         public struct UdpState
         {
@@ -26,11 +26,14 @@ namespace HDCircles.Hackathon.Services
         }
 
         public Drone _drone;
+        public PositionController _positionController;
 
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
 
         private long updateInterval = 100L; // milliseconds
         private bool _isInitialised = false;
+
+        private bool _isStarted = false;
         IPEndPoint RemoteIpEndPoint;
         // Port number
         private const int _statePort = 11000;
@@ -44,7 +47,7 @@ namespace HDCircles.Hackathon.Services
 
         private BackgroundWorker backgroundWorker;
 
-        public DroneController()    
+        public FlightStacks()    
         {
             
             
@@ -58,6 +61,10 @@ namespace HDCircles.Hackathon.Services
                 // initialise drone instance
                 _drone = new Drone();
 
+                // init position controller
+                _positionController = new PositionController();
+                _positionController.Init();
+
                 // add a background worker to perform regular tick
                 backgroundWorker = new BackgroundWorker();
                 backgroundWorker.DoWork += BackgroundWorker_Timing;
@@ -67,6 +74,16 @@ namespace HDCircles.Hackathon.Services
             }
 
         }
+
+        private void Start()
+        {
+            _positionController.Start(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
+                _drone.CurrentState.Altitude, 0, 0,0);
+
+            _isStarted = true;
+
+        }
+
         private void BackgroundWorker_Timing(object sender, DoWorkEventArgs e)
         {
             var watch = Stopwatch.StartNew();
@@ -120,19 +137,26 @@ namespace HDCircles.Hackathon.Services
         {
             //Debug.WriteLine($"Info:ControlLoop:Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
             
-
-            if (_drone.CurrentState.Altitude>2)
+            if (_drone.CurrentState.Altitude>2.5)
             {
                 Debug.Print("Info:Emergency");
 
                 _drone.EmergencyLanding();
             }
-            
+            if (_isStarted)
+            {
+                _positionController.Update(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
+                _drone.CurrentState.Altitude, 0, 0, 0);
+                //_drone
+            }
+
+
+
             //DateTime localDate = DateTime.Now;
             //Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} {udpState[0]} - yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} altitude- {_drone.CurrentState.Altitude}");
 
         }
-        public void sendUdpDebug()
+        public void SendUdpDebug()
         {
             double[] udpState = new double[10];
 

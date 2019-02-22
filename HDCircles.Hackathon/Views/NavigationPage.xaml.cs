@@ -12,7 +12,7 @@ namespace HDCircles.Hackathon.Views
     public sealed partial class NavigationPage : Page
     {
         private bool _isInitailized = false;
-        public DroneController _droneController;
+        public FlightStacks _droneController;
 
         private List<NavigationMenuItem> menuItems;
 
@@ -24,8 +24,8 @@ namespace HDCircles.Hackathon.Views
 
             if (!_isInitailized)
             {
-                _droneController = new DroneController();
-                DroneController.Dispatcher = Dispatcher;
+                _droneController = new FlightStacks();
+                FlightStacks.Dispatcher = Dispatcher;
 
             }
         }
