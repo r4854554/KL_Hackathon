@@ -1,4 +1,5 @@
-﻿using System;
+﻿
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
@@ -15,8 +16,6 @@ using System.Net;
 
 namespace HDCircles.Hackathon.Services
 {
-
-
     public class FlightStacks
     {
         public struct UdpState

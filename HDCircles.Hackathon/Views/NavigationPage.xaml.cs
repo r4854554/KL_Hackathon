@@ -89,6 +89,12 @@ namespace HDCircles.Hackathon.Views
             //});
             menuItems.Add(new NavigationMenuItem
             {
+                Name = "Control Tower",
+                Tag = nameof(ControlTowerPage),
+                ViewType = typeof(ControlTowerPage),
+            });
+            menuItems.Add(new NavigationMenuItem
+            {
                 Name = "Misc",
             });
             menuItems.Add(new NavigationMenuItem

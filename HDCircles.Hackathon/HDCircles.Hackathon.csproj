@@ -121,6 +121,7 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="model.cs" />
+    <Compile Include="Services\AutonomousFlight.cs" />
     <Compile Include="Services\Commander.cs" />
     <Compile Include="Services\Controllers\AltitudeController.cs" />
     <Compile Include="Services\FlightStacks.cs" />
@@ -136,6 +137,9 @@
     </Compile>
     <Compile Include="Views\CalibrationPage.xaml.cs">
       <DependentUpon>CalibrationPage.xaml</DependentUpon>
+    </Compile>
+    <Compile Include="Views\ControlTowerPage.xaml.cs">
+      <DependentUpon>ControlTowerPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="Views\DashboardPage.xaml.cs">
       <DependentUpon>DashboardPage.xaml</DependentUpon>
@@ -251,6 +255,10 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Page Include="Views\ControlTowerPage.xaml">
+      <SubType>Designer</SubType>
+      <Generator>MSBuild:Compile</Generator>
+    </Page>
     <Page Include="Views\GraphPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
