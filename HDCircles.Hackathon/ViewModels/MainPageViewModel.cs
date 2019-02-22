@@ -10,7 +10,6 @@
     using System.Runtime.InteropServices.WindowsRuntime;
     using System.Threading;
     using System.Threading.Tasks;
-    using System.Threading;
     using System.Timers;
     using System.Windows.Input;
     using Windows.ApplicationModel.Core;
@@ -18,8 +17,6 @@
     using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
     using Dynamsoft.Barcode;
-    using Windows.Graphics.Imaging;
-    using Windows.Storage.Streams;
     using System.ComponentModel;
     // for LiveCharts
     using LiveCharts;
@@ -38,6 +35,10 @@
     using Windows.UI.Xaml.Media;
     using Windows.UI.Xaml;
     using Windows.UI.Text;
+    using HDCircles.Hackathon.Services;
+    using Windows.UI.Xaml.Media.Imaging;
+    using System.Linq;
+    using Windows.Graphics.Imaging;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -67,21 +68,15 @@
         private bool _enableQrcodeDetection;
 
         private long qrcodeDetectFrequence = 250L;
-       
-        /// <summary>
-        /// the instance of DJIVideoParser
-        /// </summary>
-        private Parser _videoParser;
 
-        private object bufferLock = new object();
+        private object frameLock = new object();
 
-        private byte[] frameBuffer;
-
-        private int frameWidth;
-
-        private int frameHeight;
-
-        private Task aprilTagDetectionWorker;
+        public WriteableBitmap LiveFrameSource
+        {
+            get => GetValue<WriteableBitmap>(LiveFrameSourceProperty);
+            set => SetValue(LiveFrameSourceProperty, value);
+        }
+        public static readonly PropertyData LiveFrameSourceProperty = RegisterProperty(nameof(LiveFrameSource), typeof(WriteableBitmap));
         
         /// <summary>
         /// for joystick parameters
@@ -94,7 +89,7 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
-        private ObjectDetection objectDetection;
+        //private ObjectDetection objectDetection;
         #endregion Constants
 
         #region Fields
@@ -140,14 +135,7 @@
         /// </summary>
         public MainPage MainPage { get; set; }
 
-        /// <remark>
-        /// will be set at loaded event of the page
-        /// </remark>
-        public SwapChainPanel SwapChainPanel { get; set; }
-
         public static CoreDispatcher Dispatcher { get; set; }
-
-        public bool EnableAprilTagDetection { get; set; }
 
         public string SdkAppKey
         {
@@ -349,10 +337,6 @@
             ImageFrameCount = 0;
             SdkAppKey = APP_KEY;
 
-            backgroundWorker = new BackgroundWorker();
-            backgroundWorker.DoWork += BackgroundWorker_DoWork;
-            backgroundWorker.RunWorkerAsync();
-
             MainPageLoadedCommand = new TaskCommand(MainPageLoadedExecute);
             TakeOffCommand = new TaskCommand(TakeOffExecute);
             LandingCommand = new TaskCommand(LandingExecute);
@@ -367,195 +351,145 @@
             commandManager.RegisterCommand(Commands.KeyUp, KeyUpCommand, this);
 
             //label here
-            List<String> labels = new List<String> { "Box", "Nobox" };
-            objectDetection = new ObjectDetection(labels, 20, 0.8F, 0.45F);
-            init_onnx();
+            //List<String> labels = new List<String> { "Box", "Nobox" };
+            //objectDetection = new ObjectDetection(labels, 20, 0.8F, 0.45F);
+            //init_onnx();
             Thread.Sleep(100);
         }
+        
+        //private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
+        //{
+        //    var watch = Stopwatch.StartNew();
+        //    var elapsed = 0L;
+        //    var sleepTime = 0;
 
-        private void BackgroundWorker_DoWork(object sender, DoWorkEventArgs e)
-        {
-            var watch = Stopwatch.StartNew();
-            var elapsed = 0L;
-            var sleepTime = 0;
+        //    for (; ; )
+        //    {
+        //        watch.Restart();
 
-            for (; ; )
-            {
-                watch.Restart();
+        //        if (!_enableQrcodeDetection || !IsRegistered || !_isInitialized)
+        //        {
+        //            watch.Stop();
 
-                if (!_enableQrcodeDetection || !IsRegistered || !_isInitialized)
-                {
-                    watch.Stop();
+        //            elapsed = watch.ElapsedMilliseconds;
+        //            sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
 
-                    elapsed = watch.ElapsedMilliseconds;
-                    sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
+        //            Thread.Sleep(sleepTime);
+        //            continue;
+        //        }
 
-                    Thread.Sleep(sleepTime);
-                    continue;
-                }
+        //        DoDetection().Wait();
 
-                DoDetection().Wait();
+        //        watch.Stop();
 
-                watch.Stop();
+        //        elapsed = watch.ElapsedMilliseconds;
+        //        sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
 
-                elapsed = watch.ElapsedMilliseconds;
-                sleepTime = (int)Math.Max(qrcodeDetectFrequence - elapsed, 0);
+        //        Thread.Sleep(sleepTime);
+        //    }
+        //}
 
-                Thread.Sleep(sleepTime);
-            }
-        }
+        //private async Task DoDetection()
+        //{
+        //    var frame = Drone.Instance.GetLiveFrame();
+        //    int check = await ScanFrame(frame.Data, frame.Width, frame.Height);
+        //}
 
-        private async Task DoDetection()
-        {
-            var buffer = default(byte[]);
-            int width, height;
+        //private async Task<int> ScanFrame(byte[] data,int height, int width) {
+        //    // resize image to (416,416)
+        //    var mat = new Mat(height, width, MatType.CV_8UC4, data);
+        //    Mat resizemat = new Mat();
+        //    resizemat = mat.Clone();
+        //    Cv2.CvtColor(mat, mat, ColorConversionCodes.RGBA2GRAY);
+        //    resizemat.Resize(416, 416);
+        //    // Mat -> softwarebitmap
+        //    var length = resizemat.Rows * resizemat.Cols * resizemat.ElemSize();
+        //    var buffer = new byte[length];
+        //    Marshal.Copy(mat.Data, buffer, 0, length);
+        //    var bm = SoftwareBitmap.CreateCopyFromBuffer(buffer.AsBuffer(), BitmapPixelFormat.Rgba8, width, height);
+        //    try
+        //    {
+        //        IList<PredictionModel> outputlist = await objectDetection.PredictImageAsync(VideoFrame.CreateWithSoftwareBitmap(bm));
 
-            lock (bufferLock)
-            {
-                if (frameWidth == 0 || frameHeight == 0)
-                {
-                    return;
-                }
-
-                width = frameWidth;
-                height = frameHeight;
-
-                buffer = new byte[frameWidth * frameHeight * 4];
-
-                frameBuffer.CopyTo(buffer.AsBuffer());
-            }
-            int check = await ScanFrame(buffer, width, height);
-            //Decode_QRcode(buffer, width, height);
-
-            //var now = DateTime.Now;
-            //var elapsed = now - imageFpsStart;
-            //var frameCount = ImageFrameCount;
-            //var fps = ImageFps;
-
-            //if (elapsed >= TimeSpan.FromSeconds(1))
-            //{
-            //    var n = (imageFpsStart - processStart).TotalSeconds;
-
-            //    fps = (ImageFps * n / (n + 1)) + (ImageFrameCount / (n + 1));
-            //    imageFpsStart = now;
-            //    frameCount = 0;
-            //}
-            //object lck = new object();
-            //bool determinator = false;
-            //lock (lck)
-            //{
-            //    frameCount += 1;
-            //    determinator = frameCount % 5 == 0;
-            //}
-
-            //if (ImageFrameCount % 5 == 0 )
-            //if (determinator)
-            //{
-            //    new Thread(() => Decode_QRcode(data, width, height)).Start();
-            //}
-
-            //await CallOnUiThreadAsync(() =>
-            //{
-            //    ImageFrameCount = frameCount;
-            //    ImageFps = fps;
-            //});
-        }
-
-        private async Task<int> ScanFrame(byte[] data,int height, int width) {
-            // resize image to (416,416)
-            var mat = new Mat(height, width, MatType.CV_8UC4, data);
-            Mat resizemat = new Mat();
-            resizemat = mat.Clone();
-            Cv2.CvtColor(mat, mat, ColorConversionCodes.RGBA2GRAY);
-            resizemat.Resize(416, 416);
-            // Mat -> softwarebitmap
-            var length = resizemat.Rows * resizemat.Cols * resizemat.ElemSize();
-            var buffer = new byte[length];
-            Marshal.Copy(mat.Data, buffer, 0, length);
-            var bm = SoftwareBitmap.CreateCopyFromBuffer(buffer.AsBuffer(), BitmapPixelFormat.Rgba8, width, height);
-            try
-            {
-                IList<PredictionModel> outputlist = await objectDetection.PredictImageAsync(VideoFrame.CreateWithSoftwareBitmap(bm));
-
-                foreach (var output in outputlist) {
-                    // chop origin image  
-                    Mat chop = ChopOutData(mat, output.BoundingBox, height, width);
-                    var chop_image_length = chop.Rows * chop.Cols * chop.ElemSize();
-                    var chop_image_buffer = new byte[length];
-                    Marshal.Copy(chop.Data, buffer, 0, length);
-                    br = new BarcodeReader();
-                    br.LicenseKeys = Dynamsoft_App_Key;
-                    TextResult[] result =
-                        br.DecodeBuffer(buffer, width, height, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
+        //        foreach (var output in outputlist) {
+        //            // chop origin image  
+        //            Mat chop = ChopOutData(mat, output.BoundingBox, height, width);
+        //            var chop_image_length = chop.Rows * chop.Cols * chop.ElemSize();
+        //            var chop_image_buffer = new byte[length];
+        //            Marshal.Copy(chop.Data, buffer, 0, length);
+        //            br = new BarcodeReader();
+        //            br.LicenseKeys = Dynamsoft_App_Key;
+        //            TextResult[] result =
+        //                br.DecodeBuffer(buffer, width, height, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
                     
-                    switch (output.TagName) {
+        //            switch (output.TagName) {
   
-                        case "Box":
-                            if (result.Length < 2)
-                                return -1;
-                            string LocationTag = "";
-                            List<string> CartonTag = new List<string>();
-                            foreach (var pick in result)
-                            {
-                                if (LocationTagReg.Match(pick.BarcodeText).Success) {
-                                    LocationTag = pick.BarcodeText;
-                                }else if (CartonTagReg.Match(pick.BarcodeText).Success)
-                                {
-                                    CartonTag.Add(pick.BarcodeText);
-                                }
-                                int index = ResultLocation.IndexOf(LocationTag);
-                                if ( index == -1)
-                                {
-                                    ResultLocation.Add(LocationTag);
-                                    ResultCarton.Add(CartonTag);
-                                }
-                                else
-                                {
-                                    ResultCarton[index] = CartonTag;
-                                }
-                            }
-                            break;
-                        case "NoBox":
-                            if (result.Length !=  1)
-                                return -1;
-                            int i_dx = ResultLocation.IndexOf(result[0].BarcodeText);
-                            if (i_dx == -1) {
-                                ResultLocation.Add(result[0].BarcodeText);
-                                ResultCarton.Add(new List<string>());
-                            }
-                            else
-                            {
-                                ResultCarton[i_dx] = new List<string>();
-                            }
-                            break;                           
-                    }
-                    UpdateDecodeText();
-                    //LocalizationResult[] pos = br.GetAllLocalizationResults();
-                    // drawing result 
-                    // width & height should be the actualwidth and actualheight of the canvas 
-                    //UpdateResult(output, width, height);
-                    //switch (output.TagName)
-                    //{
-                    //    case "LocationTag":                            
-                    //        //do something
-                    //        break;
-                    //    case "box":
-                    //        //do something 
-                    //        break;
-                    //    case "nobox":
-                    //        //do something
-                    //        break;
-                    //}
-                    // Proccess the result
+        //                case "Box":
+        //                    if (result.Length < 2)
+        //                        return -1;
+        //                    string LocationTag = "";
+        //                    List<string> CartonTag = new List<string>();
+        //                    foreach (var pick in result)
+        //                    {
+        //                        if (LocationTagReg.Match(pick.BarcodeText).Success) {
+        //                            LocationTag = pick.BarcodeText;
+        //                        }else if (CartonTagReg.Match(pick.BarcodeText).Success)
+        //                        {
+        //                            CartonTag.Add(pick.BarcodeText);
+        //                        }
+        //                        int index = ResultLocation.IndexOf(LocationTag);
+        //                        if ( index == -1)
+        //                        {
+        //                            ResultLocation.Add(LocationTag);
+        //                            ResultCarton.Add(CartonTag);
+        //                        }
+        //                        else
+        //                        {
+        //                            ResultCarton[index] = CartonTag;
+        //                        }
+        //                    }
+        //                    break;
+        //                case "NoBox":
+        //                    if (result.Length !=  1)
+        //                        return -1;
+        //                    int i_dx = ResultLocation.IndexOf(result[0].BarcodeText);
+        //                    if (i_dx == -1) {
+        //                        ResultLocation.Add(result[0].BarcodeText);
+        //                        ResultCarton.Add(new List<string>());
+        //                    }
+        //                    else
+        //                    {
+        //                        ResultCarton[i_dx] = new List<string>();
+        //                    }
+        //                    break;                           
+        //            }
+        //            UpdateDecodeText();
+        //            //LocalizationResult[] pos = br.GetAllLocalizationResults();
+        //            // drawing result 
+        //            // width & height should be the actualwidth and actualheight of the canvas 
+        //            //UpdateResult(output, width, height);
+        //            //switch (output.TagName)
+        //            //{
+        //            //    case "LocationTag":                            
+        //            //        //do something
+        //            //        break;
+        //            //    case "box":
+        //            //        //do something 
+        //            //        break;
+        //            //    case "nobox":
+        //            //        //do something
+        //            //        break;
+        //            //}
+        //            // Proccess the result
 
-                }
-            }
-            catch
-            {
+        //        }
+        //    }
+        //    catch
+        //    {
 
-            }
-            return 0;
-        }
+        //    }
+        //    return 0;
+        //}
 
         private Mat ChopOutData(Mat image, BoundingBox box, int height, int width) {
             double x = (double)Math.Max(box.Left, 0);
@@ -589,84 +523,84 @@
             });
         }
 
-        private async void init_onnx()
-        {
+        //private async void init_onnx()
+        //{
 
-            StorageFile file = await Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///AI/model.onnx"));
-            await objectDetection.Init(file);
-        }
+        //    StorageFile file = await Windows.Storage.StorageFile.GetFileFromApplicationUriAsync(new Uri("ms-appx:///AI/model.onnx"));
+        //    await objectDetection.Init(file);
+        //}
 
         private void UpdateResult(PredictionModel output,int width, int height)
         {
-            Canvas Drawable = MainPage.GetCanvas();
-            Drawable.Children.Clear();
-            SolidColorBrush _fillBrush = new SolidColorBrush(Windows.UI.Colors.Transparent);
-            SolidColorBrush _lineBrushRed = new SolidColorBrush(Windows.UI.Colors.Red);
-            SolidColorBrush _lineBrushGreen = new SolidColorBrush(Windows.UI.Colors.Green);
-            SolidColorBrush _lineBrushBlue = new SolidColorBrush(Windows.UI.Colors.Blue);
-            SolidColorBrush color = new SolidColorBrush(Windows.UI.Colors.Blue);
+            //Canvas Drawable = MainPage.GetCanvas();
+            //Drawable.Children.Clear();
+            //SolidColorBrush _fillBrush = new SolidColorBrush(Windows.UI.Colors.Transparent);
+            //SolidColorBrush _lineBrushRed = new SolidColorBrush(Windows.UI.Colors.Red);
+            //SolidColorBrush _lineBrushGreen = new SolidColorBrush(Windows.UI.Colors.Green);
+            //SolidColorBrush _lineBrushBlue = new SolidColorBrush(Windows.UI.Colors.Blue);
+            //SolidColorBrush color = new SolidColorBrush(Windows.UI.Colors.Blue);
 
-            var box = output.BoundingBox;
+            //var box = output.BoundingBox;
 
-            double x = (double)Math.Max(box.Left, 0);
-            double y = (double)Math.Max(box.Top, 0);
-            double w = (double)Math.Min(1 - x, box.Width);
-            double h = (double)Math.Min(1 - y, box.Height);
+            //double x = (double)Math.Max(box.Left, 0);
+            //double y = (double)Math.Max(box.Top, 0);
+            //double w = (double)Math.Min(1 - x, box.Width);
+            //double h = (double)Math.Min(1 - y, box.Height);
 
-            x = width * x;
-            y = height * y;
-            w = width * w;
-            h = height * h;
+            //x = width * x;
+            //y = height * y;
+            //w = width * w;
+            //h = height * h;
 
-            switch (output.TagName)
-            {
-                case "LocationTag":
-                    //do something
-                    color = _lineBrushBlue;
-                    break;
-                case "box":
-                    //do something 
-                    color = _lineBrushGreen;
-                    break;
-                case "nobox":
-                    //do something
-                    color = _lineBrushRed;
-                    break;
-            }
-            var r = new Windows.UI.Xaml.Shapes.Rectangle
-            {
-                Tag = box,
-                Width = w,
-                Height = h,
-                Fill = _fillBrush,
-                Stroke = color,
-                StrokeThickness = 2.0,
-                Margin = new Thickness(x, y, 0, 0)
-            };
+            //switch (output.TagName)
+            //{
+            //    case "LocationTag":
+            //        //do something
+            //        color = _lineBrushBlue;
+            //        break;
+            //    case "box":
+            //        //do something 
+            //        color = _lineBrushGreen;
+            //        break;
+            //    case "nobox":
+            //        //do something
+            //        color = _lineBrushRed;
+            //        break;
+            //}
+            //var r = new Windows.UI.Xaml.Shapes.Rectangle
+            //{
+            //    Tag = box,
+            //    Width = w,
+            //    Height = h,
+            //    Fill = _fillBrush,
+            //    Stroke = color,
+            //    StrokeThickness = 2.0,
+            //    Margin = new Thickness(x, y, 0, 0)
+            //};
 
-            var tb = new TextBlock
-            {
-                Margin = new Thickness(x + 4, y + 4, 0, 0),
-                Text = $"{output.TagName} ({Math.Round(output.Probability, 4)})",
-                FontWeight = FontWeights.Bold,
-                Width = 126,
-                Height = 21,
-                HorizontalTextAlignment = TextAlignment.Center
-            };
+            //var tb = new TextBlock
+            //{
+            //    Margin = new Thickness(x + 4, y + 4, 0, 0),
+            //    Text = $"{output.TagName} ({Math.Round(output.Probability, 4)})",
+            //    FontWeight = FontWeights.Bold,
+            //    Width = 126,
+            //    Height = 21,
+            //    HorizontalTextAlignment = TextAlignment.Center
+            //};
 
-            var textBack = new Windows.UI.Xaml.Shapes.Rectangle
-            {
-                Width = 134,
-                Height = 29,
-                Fill = _fillBrush,
-                Margin = new Thickness(x, y, 0, 0)
-            };
+            //var textBack = new Windows.UI.Xaml.Shapes.Rectangle
+            //{
+            //    Width = 134,
+            //    Height = 29,
+            //    Fill = _fillBrush,
+            //    Margin = new Thickness(x, y, 0, 0)
+            //};
 
-            Drawable.Children.Add(textBack);
-            Drawable.Children.Add(tb);
-            Drawable.Children.Add(r);
+            //Drawable.Children.Add(textBack);
+            //Drawable.Children.Add(tb);
+            //Drawable.Children.Add(r);
         }
-
+        
         #endregion Class Methods
 
         #region Auxlliary functions
@@ -684,16 +618,6 @@
             {
                 CurrentStateText = message;
             });
-        }
-
-        async Task StartRecording()
-        {
-            var result = await GetCameraHandler().StartRecordAsync();
-
-            if (result != SDKError.NO_ERROR)
-            {
-
-            }
         }
 
         async Task UpdateAttitude()
@@ -771,12 +695,6 @@
             }
         }
 
-
-        int[] VideoParserVideoAssitantInfoParserHandler(byte[] data)
-        {
-            return DJISDKManager.Instance.VideoFeeder.ParseAssitantDecodingInfo(PRODUCT_INDEX, data);
-        }
-
         #region Components Handler
 
 
@@ -816,13 +734,12 @@
 
         private async Task MainPageLoadedExecute()
         {
-
             var sdkManager = DJISDKManager.Instance;
 
             sdkManager.SDKRegistrationStateChanged += DJKSDKManager_SDKRegistrationStateChanged;
-            
-            if(sdkManager.appActivationState != AppActivationState.ACTIVATED)
-                sdkManager.RegisterApp(SdkAppKey);
+
+            if (sdkManager.SDKRegistrationResultCode == SDKError.NO_ERROR)
+                DJKSDKManager_SDKRegistrationStateChanged(SDKRegistrationState.Succeeded, SDKError.NO_ERROR);
 
             await Task.Delay(100);
         }
@@ -853,28 +770,12 @@
                     rootGrid.KeyUp += MainPage_KeyUp;
                 }
 
+                QrcodeDetector.Instance.QrcodeDetected += Instance_QrcodeDetected;
+
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
                 var gimbalHandler = GetGimbalHandler();
                 var wifiHandler = GetWifiHandler();
-
-                _videoParser = new Parser();
-                
-                _videoParser.Initialize(VideoParserVideoAssitantInfoParserHandler);
-                _videoParser.SetSurfaceAndVideoCallback(PRODUCT_ID, PRODUCT_INDEX, null, VideoParserVideoDataCallback);
-
-                DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(PRODUCT_INDEX).VideoDataUpdated += VideoFeed_VideoDataUpdated;
-
-                cameraHandler.CameraTypeChanged += CameraHandler_CameraTypeChanged;
-
-                var cameraType = await cameraHandler.GetCameraTypeAsync();
-
-                CameraHandler_CameraTypeChanged(null, cameraType.value);
-
-                stateTimer = new System.Timers.Timer(STATETIMER_UPDATE_FREQUENCE);
-                stateTimer.Elapsed += StateTimer_Elapsed;
-                stateTimer.AutoReset = true;
-                stateTimer.Enabled = false;
 
                 System.Diagnostics.Debug.WriteLine("WifiHandler debug");
                 var connection = await wifiHandler.GetConnectionAsync();
@@ -887,6 +788,41 @@
 
                 _enableQrcodeDetection = true;
                 _isInitialized = true;
+
+                Thread.Sleep(300);
+            });
+        }
+
+        private async void Instance_QrcodeDetected(QrcodeDetection qrcode)
+        {
+            if (qrcode.Results == null || qrcode.Results.Length == 0)
+                return;
+
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                lock (frameLock)
+                {
+                    var frame = qrcode.Frame;
+                    var bgraData = new byte[frame.Data.Length];
+
+                    var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+                    var bgraMat = new Mat();
+
+                    Cv2.CvtColor(srcMat, bgraMat, ColorConversionCodes.RGBA2BGRA);
+
+                    Marshal.Copy(srcMat.Data, bgraData, 0, frame.Data.Length);
+
+                    if (LiveFrameSource == null || LiveFrameSource.PixelWidth != frame.Width || LiveFrameSource.PixelHeight != frame.Height)
+                    {
+                        LiveFrameSource = new WriteableBitmap(frame.Width, frame.Height);
+                    }
+
+                    bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
+
+                    LiveFrameSource.Invalidate();
+
+                    DecodeText = qrcode.Results;
+                }
             });
         }
 
@@ -1173,35 +1109,13 @@
             }
         }
 
-        private void VideoFeed_VideoDataUpdated(VideoFeed sender, byte[] bytes)
-        {
-            _videoParser.PushVideoData(PRODUCT_ID, PRODUCT_INDEX, bytes, bytes.Length);
-        }
-
-        private async void VideoParserVideoDataCallback(byte[] data, int width, int height)
-        {
-            lock (bufferLock)
-            {
-                if (null == frameBuffer)
-                {
-                    frameBuffer = data;
-                }
-                else
-                {
-                    if (frameBuffer.Length != data.Length)
-                    {
-                        Array.Resize(ref frameBuffer, data.Length);
-                    }
-
-                    data.CopyTo(frameBuffer.AsBuffer());
-                }
-
-                frameWidth = width;
-                frameHeight = height;
-            }
-        }
-
         private async Task Decode_QRcode(byte[] data,int width,int height) {
+
+            if (null == data || data.Length == 0)
+            {
+                return;
+            }
+
             try
             {
                 var mat = new Mat(height, width, MatType.CV_8UC4, data);
@@ -1209,7 +1123,8 @@
 
                 Cv2.CvtColor(mat, gray, ColorConversionCodes.RGBA2GRAY);
 
-                var length = gray.Rows * gray.Cols * gray.ElemSize();
+                var stride = gray.Cols * gray.ElemSize();
+                var length = gray.Rows * stride;
                 var buffer = new byte[length];
 
                 Marshal.Copy(gray.Data,  buffer, 0, length);
@@ -1227,11 +1142,15 @@
                 //    count += 4;
                 //}
                 // ToFix: it crashes sometime, saying that 
-                br = new BarcodeReader();
+                var br = new BarcodeReader();
                 br.LicenseKeys = Dynamsoft_App_Key;
-                TextResult[] result =
-                    br.DecodeBuffer(buffer, width, height, gray.Cols * gray.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
-                LocalizationResult[] pos = br.GetAllLocalizationResults();
+                TextResult[] result = br.DecodeBuffer(
+                    buffer, 
+                    width, 
+                    height, 
+                    stride, 
+                    EnumImagePixelFormat.IPF_GrayScaled,
+                    "");
                 
                 await CallOnUiThreadAsync(() =>
                 {
@@ -1270,27 +1189,6 @@
                 {
                     CartonTagPos.Add(i);
                 }
-            }
-        }
-
-        private void CameraHandler_CameraTypeChanged(object sender, CameraTypeMsg? value)
-        {
-            var unboxed = value ?? new CameraTypeMsg { };
-
-            if (null == _videoParser)
-                return;
-
-            switch (unboxed.value)
-            {
-                case CameraType.MAVIC_2_ZOOM:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Mavic2Zoom);
-                    break;
-                case CameraType.MAVIC_2_PRO:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Mavic2Pro);
-                    break;
-                default:
-                    _videoParser.SetCameraSensor(AircraftCameraType.Others);
-                    break;
             }
         }
 

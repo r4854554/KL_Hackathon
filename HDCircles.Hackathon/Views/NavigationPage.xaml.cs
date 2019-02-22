@@ -31,13 +31,13 @@
 
             menuItems.Add(new NavigationMenuItem
             {
-                Name = "Test",
+                Name = "Flight Controller",
             });
             menuItems.Add(new NavigationMenuItem
             {
-                Name = "Main",
-                Tag = nameof(MainPage),
-                ViewType = typeof(MainPage),
+                Name = "Dashboard",
+                Tag = nameof(DashboardPage),
+                ViewType = typeof(DashboardPage),
             });
 
             menuItems.Add(new NavigationMenuItem
@@ -49,6 +49,12 @@
                 Name = "Camera Calibration",
                 Tag = nameof(CalibrationPage),
                 ViewType = typeof(CalibrationPage),
+            });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "QR Code Detection",
+                Tag = nameof(MainPage),
+                ViewType = typeof(MainPage),
             });
             menuItems.Add(new NavigationMenuItem
             {

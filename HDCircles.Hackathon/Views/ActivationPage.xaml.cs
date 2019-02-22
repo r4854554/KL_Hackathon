@@ -13,6 +13,8 @@ using Windows.UI.Xaml;
 namespace HDCircles.Hackathon.Views
 {
     using DJI.WindowsSDK;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Windows.UI.Xaml.Controls;
 
     public sealed partial class ActivationPage : Page
@@ -39,6 +41,14 @@ namespace HDCircles.Hackathon.Views
                     ActivationResultTextBox.Text = SDKError.NO_ERROR.ToString();
                 });
             }
+
+            var text = SdkKeyTextBox.Text;
+            var activateTask = new Thread(() =>
+            {
+                Thread.Sleep(300);
+                DJISDKManager.Instance.RegisterApp(text);
+            });
+            activateTask.Start();
 
             Loaded -= ActivationPage_Loaded;
         }

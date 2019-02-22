@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-namespace HDCircles.Hackathon
+﻿namespace HDCircles.Hackathon
 {
     using Catel.IoC;
     using Catel.MVVM;
@@ -45,7 +39,6 @@ namespace HDCircles.Hackathon
             var vm = ((MainPage)sender)._viewModel;
 
             vm.MainPage = this;
-            vm.SwapChainPanel = FpvSwapChainPanel;
             
             _commandManager.ExecuteCommand(Commands.MainPageLoaded);
 
@@ -57,9 +50,9 @@ namespace HDCircles.Hackathon
             this.Frame.Navigate(typeof(GraphPage));
         }
 
-        public Canvas GetCanvas()
-        {
-            return Drawable;
-        }
+        //public Canvas GetCanvas()
+        //{
+        //    return Drawable;
+        //}
     }
 }
