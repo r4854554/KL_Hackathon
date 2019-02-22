@@ -20,8 +20,8 @@ namespace HDCircles.Hackathon
         {
             this.GainDerivative = GainDerivative;
             this.GainProportional = GainProportional;
-            this.OutputMax = 1;
-            this.OutputMin = -1;
+            this.OutputMax = 1f;
+            this.OutputMin = -1f;
         }
 
         public void Start(double setpoint, double processVariable, double processVariableRate)
@@ -52,16 +52,17 @@ namespace HDCircles.Hackathon
             return output;
         }
 
+        private double processVariableRate;
         /// <summary>
         /// The current value
         /// </summary>
         public double ProcessVariableRate
         {
-            get { return ProcessVariableRate; }
+            get { return processVariableRate; }
             set
             {
-                
-                ProcessVariableRate = value;
+
+                processVariableRate = value;
             }
         }
 
@@ -85,7 +86,7 @@ namespace HDCircles.Hackathon
         /// The derivative term is proportional to the rate of
         /// change of the error
         /// </summary>
-        public double GainDerivative { get; set; } = 0;
+        public double GainDerivative { get; set; } = 0f;
 
         /// <summary>
         /// The proportional term produces an output value that

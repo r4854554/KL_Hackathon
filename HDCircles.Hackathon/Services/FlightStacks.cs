@@ -78,7 +78,7 @@ namespace HDCircles.Hackathon.Services
         private void Start()
         {
             _positionController.Start(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
-                _drone.CurrentState.Altitude, 0, 0,0);
+                _drone.CurrentState.Altitude, _drone.CurrentState.Vx, _drone.CurrentState.Vy, _drone.CurrentState.Vz);
 
             _isStarted = true;
 
@@ -137,25 +137,43 @@ namespace HDCircles.Hackathon.Services
         {
             //Debug.WriteLine($"Info:ControlLoop:Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
             
+            // Safetyguad to prevent drone go crazy 
             if (_drone.CurrentState.Altitude>2.5)
             {
                 Debug.Print("Info:Emergency");
 
                 _drone.EmergencyLanding();
             }
+
+            // check start condition
+            if (_drone._isSdkRegistered)
+            {
+                Start();
+            }
+            
+            // get setpoint
+            
+
+            // only update afte start the whole controller
             if (_isStarted)
             {
+                // update postion controller
                 _positionController.Update(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
-                _drone.CurrentState.Altitude, 0, 0, 0);
-                //_drone
+                    _drone.CurrentState.Altitude, _drone.CurrentState.Vx, _drone.CurrentState.Vy, _drone.CurrentState.Vz);
+                // update drone control
+                _drone.SetJoystick((float)_positionController.ThrottleCmd,
+                    (float)_positionController.YawCmd, (float)_positionController.PitchCmd, (float)_positionController.RollCmd);
             }
 
 
-
-            //DateTime localDate = DateTime.Now;
-            //Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} {udpState[0]} - yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} altitude- {_drone.CurrentState.Altitude}");
+            DateTime localDate = DateTime.Now;
+            Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +
+                $"|yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} z- {_drone.CurrentState.Altitude}"
+                + $"\t|Vx - {_drone.CurrentState.Vx} pitch - {_drone.CurrentState.Vx} Vy - {_drone.CurrentState.Vy} Vz- {_drone.CurrentState.Vz}" 
+                + $"");
 
         }
+
         public void SendUdpDebug()
         {
             double[] udpState = new double[10];
@@ -181,6 +199,7 @@ namespace HDCircles.Hackathon.Services
             }
         }
 
+        // spare code for udp send
         //try
         //{
         //    //Debug.WriteLine($"This is the message you received {receivingUdpClient.Available}");

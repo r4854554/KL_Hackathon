@@ -8,7 +8,70 @@ namespace HDCircles.Hackathon
         AltitudeController altitudeController;
         private const double Gain_p_alt = 1;
         private const double Gain_d_alt = 0.8;
-        private double[] Control; 
+        // the output of position controller - control to the drone
+        private double throttleCmd = 0.0;
+        public double ThrottleCmd { get; set; }
+
+        private double rollCmd = 0.0;
+        public double RollCmd { get; set; }
+
+        private double pitchCmd = 0.0;
+        public double PitchCmd { get; set; }
+
+        private double yawCmd = 0.0;
+        public double YawCmd { get; set; }
+
+        // Controller setpoints
+        private double altitudeSetpoint;  
+        public double AltitudeSetpoint {
+            get => altitudeSetpoint;
+            set {
+                altitudeSetpoint = value;
+                altitudeController.SetPoint = altitudeSetpoint;
+            }
+        }
+
+        private double relativeXSetpoint = 0.0;
+        public double RelativeXSetpoint
+        {
+            get => relativeXSetpoint;
+            set
+            {
+                relativeXSetpoint = value;
+
+            }
+        }
+
+        private double relativeYSetpoint = 0.0;
+        public double RelativeYSetpoint
+        {
+            get => relativeYSetpoint;
+            set
+            {
+                relativeYSetpoint = value;
+
+            }
+        }
+
+        private double relativeZSetpoint;
+        public double RelativeZSetpoint
+        {
+            get => relativeZSetpoint;
+            set
+            {
+                relativeZSetpoint = value;
+
+            }
+        }
+
+
+        private double yawSetpoint;
+        public double YawSetpoint {
+            get => yawSetpoint;
+            set {
+                yawSetpoint = value;
+            }
+        }
 
         public PositionController()
         {
@@ -31,15 +94,14 @@ namespace HDCircles.Hackathon
 
         }
 
-        public double[] Update(double roll, double pitch, double yaw, double altitude, double vx, double vy, double vz)
+        public void Update(double roll, double pitch, double yaw, double altitude, double vx, double vy, double vz)
         {
             // update altitude controller
 
-            
-             
-            Control[0] = altitudeController.Update(altitude, vz);
 
-            return Control;
+
+            throttleCmd = altitudeController.Update(altitude, vz);
+            
 
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
@@ -47,9 +109,12 @@ namespace HDCircles.Hackathon
             altitudeController.Start(altitude, altitude, vz);
         }
 
-        public void SetCommand(double yaw, double altitude, double x, double y)
+        public void SetAllCommand(double yaw, double altitude, double relativeX, double relativeY)
         {
-            altitudeController.SetPoint = altitude;
+            AltitudeSetpoint = altitude;
+            YawSetpoint = yaw;
+
+
         }
         //private void Instance_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         //{
