@@ -571,9 +571,19 @@
         public ICommand TakeOffCommand { get; set; }
         private async Task TakeOffExecute()
         {
-            var fcHandler = GetFlightControllerHandler();
+            
 
+            var fcHandler = GetFlightControllerHandler();
+            
+   
             var result = await fcHandler.StartTakeoffAsync();
+            if (result == SDKError.NO_ERROR)
+            {
+                Drone.Instance.IsLanding = false;
+                //Drone.Instance.IsTakingOff = true;
+            }
+
+
 
             await UpdateCurrentState("take off executed: " + result);
         }
@@ -585,29 +595,7 @@
         public ICommand LandingCommand { get; set; }
         private async Task LandingExecute()
         {
-            var fcHandler = GetFlightControllerHandler();
-            
-            await ResetJoystickExecute();
-            await fcHandler.StartAutoLandingAsync();
-            var  isFlyingResult = await fcHandler.GetIsFlyingAsync();
-            if (isFlyingResult.value.HasValue)
-            {
-                var isFlying = isFlyingResult.value.Value.value;
-                while (isFlying)
-                {
-                    await fcHandler.StartAutoLandingAsync();
-                    var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
-                    if (confirmationNeeded.value.HasValue)
-                    {
-                        await fcHandler.ConfirmLandingAsync();
-                    }
-                    isFlyingResult = await fcHandler.GetIsFlyingAsync();
-                    if (isFlyingResult.value.HasValue) { isFlying = isFlyingResult.value.Value.value; }
-
-                }
-            }
-            
-
+            Drone.Instance.EmergencyLanding();
         }
 
         #endregion Landing Command

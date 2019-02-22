@@ -1,21 +1,20 @@
 ﻿using DJI.WindowsSDK;
+using HDCircles.Hackathon.Services;
 using System;
 using System.Diagnostics;
 using System.Threading;
+
 // this implement a simple PD controller, using the Z, and Vz
 
 namespace HDCircles.Hackathon
 {
     public sealed class AltitudeController
+
     {
-
-
-
-        public AltitudeController(double GainProportional, double GainDerivative)
+         public AltitudeController(double GainProportional, double GainDerivative)
         {
             Init(GainProportional, GainDerivative);
         }
-
 
         public void Init(double GainProportional, double GainDerivative)
         {
@@ -32,9 +31,6 @@ namespace HDCircles.Hackathon
             this.ProcessVariableRate = currentProcessVariableRate;
 
         }
-
-
-
         /// <summary>
         /// The controller output
         /// </summary>
@@ -49,13 +45,13 @@ namespace HDCircles.Hackathon
             
             // work out the control
             double error = SetPoint - ProcessVariable;
-       
-            // proportional term calcullation
-            double output = GainProportional * (error - ProcessVariableRate*GainDerivative);
+            double output = GainProportional * (error + ProcessVariableRate*GainDerivative); // it add the derivative term becasue the zv is the other sign
+            output = Clamp(output,OutputMax, OutputMin);
 
-            output = Clamp(output);
+            var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
+            UdpDebug.Instance.SendUdpDebug(udpData);
 
-            Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {SetPoint}, Output: { output}");
+            Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable}, ProcessVarRate: {ProcessVariableRate}, Output: { output}");
             return output;
         }
 
@@ -86,9 +82,6 @@ namespace HDCircles.Hackathon
                 processVariable = value;
             }
         }
-
-
-
         /// <summary>
         /// The derivative term is proportional to the rate of
         /// change of the error
@@ -120,10 +113,19 @@ namespace HDCircles.Hackathon
         /// </summary>
         public double ProcessVariableLast { get; private set; } = 0;
 
+
+        private double _setPoint;
         /// <summary>
         /// The desired value
         /// </summary>
-        public double SetPoint { get; set; } = 0;
+        public double SetPoint {
+            get => _setPoint;
+            set {
+
+                _setPoint = Clamp(value, SetPointMax, SetPointMin);
+             
+            }
+        }
 
         /// <summary>
         /// Limit a variable to the set OutputMax and OutputMin properties
@@ -134,14 +136,16 @@ namespace HDCircles.Hackathon
         /// <remarks>
         /// Inspiration from http://stackoverflow.com/questions/3176602/how-to-force-a-number-to-be-in-a-range-in-c
         /// </remarks>
-        private double Clamp(double variableToClamp)
+        private double Clamp(double variableToClamp, double max, double min)
         {
-            if (variableToClamp <= OutputMin) { return OutputMin; }
-            if (variableToClamp >= OutputMax) { return OutputMax; }
+            if (variableToClamp <= min) { return min; }
+            if (variableToClamp >= max) { return max; }
             return variableToClamp;
         }
 
         private double processVariable = 0;
+        private double SetPointMax = 3;
+        private double SetPointMin = 0.3;
 
 
     }

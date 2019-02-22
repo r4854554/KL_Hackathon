@@ -1,4 +1,5 @@
 ﻿using DJI.WindowsSDK;
+using System;
 using System.Diagnostics;
 using System.Threading;
 
@@ -9,18 +10,18 @@ namespace HDCircles.Hackathon
         AltitudeController altitudeController;
         private const double Gain_p_alt = 1;
         private const double Gain_d_alt = 0.8;
+
         // the output of position controller - control to the drone
-        private double throttleCmd = 0.0;
-        public double ThrottleCmd { get; set; }
+        //private double throttleCmd = 0.0;
+        public double ThrottleCmd { get; private set; } = 0;
+        //private double rollCmd = 0.0;
+        public double RollCmd { get; private set; } = 0;
 
-        private double rollCmd = 0.0;
-        public double RollCmd { get; set; }
+        //private double pitchCmd = 0.0;
+        public double PitchCmd { get; private set; } = 0;
 
-        private double pitchCmd = 0.0;
-        public double PitchCmd { get; set; }
-
-        private double yawCmd = 0.0;
-        public double YawCmd { get; set; }
+        //private double yawCmd = 0.0;
+        public double YawCmd { get; private set; } = 0;
 
         // Controller setpoints
         private double altitudeSetpoint;  
@@ -40,7 +41,6 @@ namespace HDCircles.Hackathon
             set
             {
                 relativeXSetpoint = value;
-
             }
         }
 
@@ -65,8 +65,6 @@ namespace HDCircles.Hackathon
 
             }
         }
-
-
         private double yawSetpoint;
         public double YawSetpoint {
             get => yawSetpoint;
@@ -75,7 +73,20 @@ namespace HDCircles.Hackathon
             }
         }
 
-        public PositionController()
+        // constructor
+        private static PositionController _instance;
+        public static PositionController Instance
+        {
+            get
+            {
+                if (null == _instance)
+                    _instance = new PositionController();
+
+                return _instance;
+            }
+        }
+
+        private PositionController()
         {
             Init();
         }
@@ -95,45 +106,30 @@ namespace HDCircles.Hackathon
         {
 
         }
-
-        public void Update(double roll, double pitch, double yaw, double altitude, double vx, double vy, double vz)
+        /// <summary>
+        /// The controller output
+        /// </summary>
+        /// <param name="timeSinceLastUpdate">timespan of the elapsed time
+        /// since the previous time that ControlVariable was called</param>
+        /// <returns>Value of the variable that needs to be controlled</returns>
+        public void Update(double dt, double roll, double pitch, double yaw, double altitude, double vx, double vy, double vz)
         {
-            // update altitude controller
-
-
+          // Get feedback
+          // Update altitude controller
+            ThrottleCmd = altitudeController.Update(altitude, vz);
             
-            throttleCmd = altitudeController.Update(altitude, vz);
-            
-
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
             double defaultTakeoffAltitude = 1.2;
             altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
         }
-
-        public void SetAllCommand(double yaw, double altitude, double relativeX, double relativeY)
-        {
-            AltitudeSetpoint = altitude;
-            YawSetpoint = yaw;
-
-
-        }
-
+        
         public void SetAltitudeStepCommand(double step)
         {
             Debug.Print($"Info:SetAltitudeStepCommand: {step}");
             AltitudeSetpoint = AltitudeSetpoint + step;
-           
-
-
         }
-        //private void Instance_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
-        //{
-        //    //var isReg = errorCode == SDKError.NO_ERROR;
-
-        //}
-
 
     }
 }
