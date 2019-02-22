@@ -397,6 +397,7 @@ namespace HDCircles.Hackathon.Services
                 var SDKErrorCode = await fcHandler.StartAutoLandingAsync();
                 if (SDKErrorCode == SDKError.NO_ERROR)
                 {
+
                     Drone.Instance.IsLanding = true;
                     //Drone.Instance.IsTakingOff = false;
 

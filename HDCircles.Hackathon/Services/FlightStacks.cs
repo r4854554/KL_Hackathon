@@ -37,7 +37,7 @@ namespace HDCircles.Hackathon.Services
         // constant parameter
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
         private long updateInterval = 100L;                     // milliseconds
-        private double ControlValueDeadzone = 0.5;     // any control less this value will be ignored
+        private double ControlValueDeadzone = 0.05;     // any control less this value will be ignored
 
         // flags
         private bool _isInitialised = false;
@@ -141,10 +141,11 @@ namespace HDCircles.Hackathon.Services
             }
 
             // Need to deicid when to start controllercheck start condition
-            if (_drone._isSdkRegistered && !_isStarted)
+            if (_drone._isSdkRegistered && !_isStarted && _drone.CurrentState.Altitude>1.19)
             {
                 Start();
                 _isStarted = true;
+
             }
 
             // Setpoint: set point is 
@@ -191,11 +192,12 @@ namespace HDCircles.Hackathon.Services
                 float pitchCmd = (float)DeadzoneControlValue(_positionController.PitchCmd, ControlValueDeadzone);
                 float yawCmd = (float)DeadzoneControlValue(_positionController.YawCmd, ControlValueDeadzone);
 
-                if (throttleCmd!=0f || rollCmd != 0f || pitchCmd != 0f || yawCmd != 0f)
-                {
-                    _drone.SetJoystick((float)_positionController.ThrottleCmd,
-                   (float)_positionController.YawCmd, (float)_positionController.PitchCmd, (float)_positionController.RollCmd);
-                } 
+                //if (throttleCmd!=0f || rollCmd != 0f || pitchCmd != 0f || yawCmd != 0f)
+                //{
+                    _drone.SetJoystick(throttleCmd,
+                   yawCmd, pitchCmd, rollCmd);
+                    Debug.WriteLine($"Info:ControlLoop: {throttleCmd} ");
+                //} 
                
                 DateTime localDate = DateTime.Now;;
                 Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +

@@ -8,8 +8,8 @@ namespace HDCircles.Hackathon
     public class PositionController
     {
         AltitudeController altitudeController;
-        private const double Gain_p_alt = 1;
-        private const double Gain_d_alt = 0.8;
+        private const double Gain_p_alt = 0.8;
+        private const double Gain_d_alt = 0.5;
 
         // the output of position controller - control to the drone
         //private double throttleCmd = 0.0;
