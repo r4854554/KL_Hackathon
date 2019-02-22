@@ -1,12 +1,19 @@
-﻿namespace HDCircles.Hackathon.Views
+﻿using HDCircles.Hackathon.Services;
+
+namespace HDCircles.Hackathon.Views
 {
     using System;
     using System.Collections.Generic;
     using System.Linq;
+    using Windows.UI.Core;
     using Windows.UI.Xaml.Controls;
+
 
     public sealed partial class NavigationPage : Page
     {
+        private bool _isInitailized = false;
+        public DroneController _droneController;
+
         private List<NavigationMenuItem> menuItems;
 
         public NavigationPage()
@@ -14,6 +21,13 @@
             this.InitializeComponent();
 
             menuItems = new List<NavigationMenuItem>();
+
+            if (!_isInitailized)
+            {
+                _droneController = new DroneController();
+                DroneController.Dispatcher = Dispatcher;
+
+            }
         }
 
         private void NavigationPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
@@ -33,12 +47,12 @@
             {
                 Name = "Flight Controller",
             });
-            menuItems.Add(new NavigationMenuItem
-            {
-                Name = "Dashboard",
-                Tag = nameof(DashboardPage),
-                ViewType = typeof(DashboardPage),
-            });
+            //menuItems.Add(new NavigationMenuItem
+            //{
+            //    Name = "Dashboard",
+            //    Tag = nameof(DashboardPage),
+            //    ViewType = typeof(DashboardPage),
+            //});
 
             menuItems.Add(new NavigationMenuItem
             {
@@ -50,6 +64,7 @@
                 Tag = nameof(CalibrationPage),
                 ViewType = typeof(CalibrationPage),
             });
+
             menuItems.Add(new NavigationMenuItem
             {
                 Name = "QR Code Detection",
@@ -62,6 +77,16 @@
                 Tag = nameof(AprilTagsPage),
                 ViewType = typeof(AprilTagsPage),
             });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Controller",
+            });
+            //menuItems.Add(new NavigationMenuItem
+            //{
+            //    Name = "Controller Tunning",
+            //    Tag = nameof(GraphPage),
+            //    ViewType = typeof(GraphPage),
+            //});
 
             // initialize navigation menu items
             foreach (var item in menuItems)
@@ -77,8 +102,6 @@
                     NavView.MenuItems.Add(item.Name);
                 }
             }
-
-            ContentFrame.Navigate(menuItems[1].ViewType);
         }
 
         private void NavigationView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)

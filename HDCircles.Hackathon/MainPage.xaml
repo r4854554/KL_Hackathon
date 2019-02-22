@@ -19,8 +19,6 @@
         </Grid.RowDefinitions>
 
         <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
-            <AppBarButton Icon="Camera" Command="{Binding TestGimbalCommand}" Label="Test Gimbal Control" />
-            <AppBarButton Icon="Refresh" Command="{Binding ResetGimbalCommand}" Label="Reset Gimbal" />
             <AppBarSeparator />
             <AppBarButton Icon="Up" Command="{Binding TakeOffCommand}" Label="Take Off" />
             <AppBarButton Icon="Download" Command="{Binding LandingCommand}" Label="Landing" />

@@ -7,6 +7,7 @@ using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Windows.Input;
 
 namespace HDCircles.Hackathon.Services
 {
@@ -46,20 +47,22 @@ namespace HDCircles.Hackathon.Services
 
     public sealed class Drone
     {
+        private uint PRODUCT_ID = 0;
+        private uint PRODUCT_INDEX = 0;
         public event StateChangedHandler StateChanged;
 
-        private static Drone _instance;
+        private static DJISDKManager _sdkManager;
 
-        public static Drone Instance
+        public static DJISDKManager SdkManager
         {
             get
             {
-                if (null == _instance)
+                if (null == _sdkManager)
                 {
-                    _instance = new Drone();
+                    _sdkManager = DJISDKManager.Instance;
                 }
 
-                return _instance;
+                return _sdkManager;
             }
         }
 
@@ -83,7 +86,7 @@ namespace HDCircles.Hackathon.Services
         /// <summary>
         /// indicates whether the sdk instance is able to connect
         /// </summary>
-        private bool _isSdkRegistered;
+        public bool _isSdkRegistered;
 
         /// <summary>
         /// indicates the background worker is running.
@@ -98,14 +101,27 @@ namespace HDCircles.Hackathon.Services
         /// <summary>
         /// 
         /// </summary>
-        private Thread _workerThread;
+        //private Thread _workerThread;
 
         private BackgroundWorker backgroundWorker;
 
         /// <summary>
         /// current flight state of the drone.
         /// </summary>
-        private FlightState currentState;
+        private FlightState _currentState;
+        public FlightState CurrentState { get => _currentState; }
+
+        private static Drone _instance;
+        public static Drone Instance
+        {
+            get
+            {
+                if (null == _instance)
+                    _instance = new Drone();
+
+                return _instance;
+            }
+        }
 
         private Drone()
         {
@@ -199,12 +215,12 @@ namespace HDCircles.Hackathon.Services
 
             lock (_stateLock)
             {
-                currentState = new FlightState(altitudeValue, yaw, pitch, roll, flightStateError);
+                _currentState = new FlightState(altitudeValue, yaw, pitch, roll, flightStateError);
 
                 if (null != StateChanged)
                 {
                     // dispatch the state
-                    StateChanged.Invoke(currentState);
+                    StateChanged.Invoke(_currentState);
                 }
 
                 //Debug.WriteLine($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
@@ -218,6 +234,7 @@ namespace HDCircles.Hackathon.Services
             if (_isSdkRegistered)
             {
                 _isWorkerEnabled = true;
+                ConfigDroneAsync();
                 fcHandler = DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0);
                 
                 var videoFeeder = DJISDKManager.Instance.VideoFeeder.GetPrimaryVideoFeed(0);
@@ -311,5 +328,88 @@ namespace HDCircles.Hackathon.Services
                 frameHeight = height;
             }
         }
+
+        #region Methods
+        public void ResetJoystick()
+        {
+            if (null != DJISDKManager.Instance)
+                DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(0f, 0f, 0f, 0f);
+
+            Task.Delay(20);
+        }
+
+
+        public async void EmergencyLanding()
+        {
+            if (null != DJISDKManager.Instance)
+            {
+                ResetJoystick();
+
+                await fcHandler.StartAutoLandingAsync();
+                var isFlyingResult = await fcHandler.GetIsFlyingAsync();
+                if (isFlyingResult.value.HasValue)
+                {
+                    var isFlying = isFlyingResult.value.Value.value;
+                    while (isFlying)
+                    {
+
+                        var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
+                        if (confirmationNeeded.value.HasValue)
+                        {
+                            await fcHandler.ConfirmLandingAsync();
+                        }
+                        isFlyingResult = await fcHandler.GetIsFlyingAsync();
+                        if (isFlyingResult.value.HasValue) { isFlying = isFlyingResult.value.Value.value; }
+
+                    }
+                }
+            }
+            
+        }
+
+        public async Task<bool> ConfigDroneAsync()
+        {
+            // set flight ceiling !! not useful, minimum is 20m
+            //IntMsg ceiling;
+            //ceiling.value = 2; 
+            //GetFlightControllerHandler().SetHeightLimitAsync(ceiling);
+            FCFailsafeActionMsg actionMsg;
+            actionMsg.value = FCFailsafeAction.LANDING;
+            await GetFlightControllerHandler().SetFailsafeActionAsync(actionMsg);
+
+            return true;
+        }
+
+        #endregion Methods
+
+        #region Handler
+        WiFiHandler GetWifiHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetWiFiHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
+
+        FlightControllerHandler GetFlightControllerHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
+        CameraHandler GetCameraHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetCameraHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
+        GimbalHandler GetGimbalHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetGimbalHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+
+        BatteryHandler GetBatteryHandler()
+        {
+            return DJISDKManager.Instance.ComponentManager.GetBatteryHandler(PRODUCT_ID, PRODUCT_INDEX);
+        }
+        #endregion
+
     }
+
 }
