@@ -223,27 +223,27 @@
             }
             catch (Exception ex)
             {
-                //lock (updateLock)
-                //{
-                //    string resultText = "";
-                //    int index = ResultLocation.Count;
-                //    for (int i = 0; i < index; i++)
-                //    {
-                //        resultText += ResultLocation[i] + " -> ";
-                //        foreach (string carton in ResultCarton[i])
-                //        {
-                //            resultText += carton + " ";
-                //        }
-                //        resultText += "\n";
-                //    }
+                lock (updateLock)
+                {
+                    //string resultText = "";
+                    //int index = ResultLocation.Count;
+                    //for (int i = 0; i < index; i++)
+                    //{
+                    //    resultText += ResultLocation[i] + " -> ";
+                    //    foreach (string carton in ResultCarton[i])
+                    //    {
+                    //        resultText += carton + " ";
+                    //    }
+                    //    resultText += "\n";
+                    //}
 
-                //    var qrcode = new QrcodeDetection(resultText, frame);
+                    var qrcode = new QrcodeDetection(ex.Message, frame);
 
-                //    if (null != QrcodeDetected)
-                //    {
-                //        QrcodeDetected.Invoke(qrcode);
-                //    }
-                //}
+                    if (null != QrcodeDetected)
+                    {
+                        QrcodeDetected.Invoke(qrcode);
+                    }
+                }
                 return -1;
             }
             return 0;
@@ -312,7 +312,7 @@
             if (isReg)
             {
                 List<String> labels = new List<String> { "Box", "Nobox" };
-                objectDetection = new ObjectDetection(labels, 10, 0.75F, 0.45F);
+                objectDetection = new ObjectDetection(labels, 10, 0.6F, 0.45F);
                 await init_onnx();
                 _isRunning = true;
 
