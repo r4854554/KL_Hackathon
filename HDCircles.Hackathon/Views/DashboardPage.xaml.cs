@@ -25,9 +25,20 @@
             InitializeComponent();
 
             Values = new ChartValues<double>();
-            Drone.Instance.StateChanged += Drone_StateChanged;
 
+            Loaded += DashboardPage_Loaded;
+            Unloaded += DashboardPage_Unloaded;
+        }
+
+        private void DashboardPage_Loaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
             YawChartSeries.Values = Values;
+            Drone.Instance.StateChanged += Drone_StateChanged;
+        }
+
+        private void DashboardPage_Unloaded(object sender, Windows.UI.Xaml.RoutedEventArgs e)
+        {
+            Drone.Instance.StateChanged -= Drone_StateChanged;
         }
 
         private void Drone_StateChanged(FlightState state)
@@ -36,7 +47,7 @@
             {
                 try
                 {
-                    flightState = new FlightState(state.Altitude, state.Yaw, state.Pitch, state.Roll, state.Error);
+                    flightState = new FlightState(state.Altitude, state.Yaw, state.Pitch, state.Roll, state.Vx, state.Vy, state.Vz, state.Error);
 
                     var first = Values.DefaultIfEmpty(0).FirstOrDefault();
 
@@ -51,7 +62,7 @@
                         {
                             Values.Add(flightState.Yaw);
                         }
-                    });
+                    }).AsTask().Wait();
 
                     Count = Values.Count;
                 }
