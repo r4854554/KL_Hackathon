@@ -592,7 +592,7 @@
                 var isFlying = isFlyingResult.value.Value.value;
                 while (isFlying)
                 {
-
+                    await fcHandler.StartAutoLandingAsync();
                     var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
                     if (confirmationNeeded.value.HasValue)
                     {

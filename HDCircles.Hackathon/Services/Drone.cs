@@ -17,14 +17,22 @@ namespace HDCircles.Hackathon.Services
         public double Yaw { get; }
         public double Pitch { get; }
         public double Roll { get; }
+        public double Vx { get; }
+        public double Vy { get; }
+        public double Vz { get; }
         public SDKError Error { get; }
 
-        public FlightState(double altitude, double yaw, double pitch, double roll, SDKError error)
+        public FlightState(double altitude, double yaw, double pitch, double roll, 
+            double vx, double vy, double vz, SDKError error)
         {
             Altitude = altitude;
             Yaw = yaw;
             Pitch = pitch;
             Roll = roll;
+            Vx = vx;
+            Vy = vy;
+            Vz = vz;
+
             Error = error;
         }
     }
@@ -197,12 +205,16 @@ namespace HDCircles.Hackathon.Services
         {
             var attitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAttitudeAsync();
             var altitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAltitudeAsync();
+            var velocity = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetVelocityAsync();
 
             var flightStateError = attitude.error;
             var yaw = 0.0;
             var pitch = 0.0;
             var roll = 0.0;
             var altitudeValue = 0.0;
+            var vx = 0.0;
+            var vy = 0.0;
+            var vz = 0.0;
 
             if (attitude.error == SDKError.NO_ERROR)
             {
@@ -213,9 +225,19 @@ namespace HDCircles.Hackathon.Services
                 altitudeValue = altitude.value.Value.value;
             }
 
+
+            if (velocity.error == SDKError.NO_ERROR)
+            {
+                vx = velocity.value.Value.x; ;
+                vy = velocity.value.Value.y;
+                vz = velocity.value.Value.z;
+
+                altitudeValue = altitude.value.Value.value;
+            }
+
             lock (_stateLock)
             {
-                _currentState = new FlightState(altitudeValue, yaw, pitch, roll, flightStateError);
+                _currentState = new FlightState(altitudeValue, yaw, pitch, roll,vx, vy, vz, flightStateError);
 
                 if (null != StateChanged)
                 {
@@ -338,6 +360,15 @@ namespace HDCircles.Hackathon.Services
             Task.Delay(20);
         }
 
+        public void SetJoystick(float throttle, float yaw, float pitch, float roll)
+        {
+            if (null != DJISDKManager.Instance)
+                DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
+
+            
+        }
+
+
 
         public async void EmergencyLanding()
         {
@@ -352,7 +383,7 @@ namespace HDCircles.Hackathon.Services
                     var isFlying = isFlyingResult.value.Value.value;
                     while (isFlying)
                     {
-
+                        await fcHandler.StartAutoLandingAsync();
                         var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
                         if (confirmationNeeded.value.HasValue)
                         {

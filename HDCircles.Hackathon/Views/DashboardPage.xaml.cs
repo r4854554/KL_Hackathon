@@ -47,7 +47,7 @@
             {
                 try
                 {
-                    flightState = new FlightState(state.Altitude, state.Yaw, state.Pitch, state.Roll, state.Error);
+                    flightState = new FlightState(state.Altitude, state.Yaw, state.Pitch, state.Roll, state.Vx, state.Vy, state.Vz, state.Error);
 
                     var first = Values.DefaultIfEmpty(0).FirstOrDefault();
 

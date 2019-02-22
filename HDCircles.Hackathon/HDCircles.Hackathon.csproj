@@ -120,9 +120,11 @@
       <DependentUpon>App.xaml</DependentUpon>
     </Compile>
     <Compile Include="Services\Commander.cs" />
-    <Compile Include="Services\DroneController.cs" />
+    <Compile Include="Services\Controllers\AltitudeController.cs" />
+    <Compile Include="Services\FlightStacks.cs" />
     <Compile Include="Services\Drone.cs" />
     <Compile Include="Services\Logger.cs" />
+    <Compile Include="Services\PosController.cs" />
     <Compile Include="Services\QrcodeDetector.cs" />
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
@@ -153,7 +155,7 @@
     </Compile>
     <Compile Include="Services\StateEstimator.cs" />
     <Compile Include="Services\Commands.cs" />
-    <Compile Include="Services\PosController.cs" />
+    <Compile Include="Services\PositionController.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="ViewModels\MainPageViewModel.cs" />
     <None Include="Readme.md" />
