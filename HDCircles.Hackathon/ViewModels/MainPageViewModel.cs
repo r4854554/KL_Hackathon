@@ -31,6 +31,7 @@
     using HDCircles.Hackathon.Services;
     using Windows.UI.Xaml.Media.Imaging;
     using System.Linq;
+    using HDCircles.Hackathon.Views;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -75,6 +76,8 @@
         private float gimbalPitch = 0.0f;
         private float gimbalRoll = 0.0f;
         private float gimbalYaw = 0.0f;
+
+        
         #endregion Constants
 
         #region Fields
@@ -697,6 +700,14 @@
                     break;
                 case VirtualKey.Y:
                     gimbalYaw = -GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.Up:
+                    Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(0.7);
+                    break;
+                case VirtualKey.Down:
+                    Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(-0.7);
                     break;
             }
 

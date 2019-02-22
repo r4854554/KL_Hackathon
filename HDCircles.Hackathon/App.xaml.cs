@@ -67,6 +67,7 @@
             /// initialize the instance
             var logger = Logger.Instance;
             var drone = Drone.Instance;
+            var flightStacs = FlightStacks.Instance;
             var posController = PosController.Instance;
 
             posController.Start();

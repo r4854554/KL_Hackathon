@@ -1,4 +1,5 @@
 ﻿using DJI.WindowsSDK;
+using System.Diagnostics;
 using System.Threading;
 
 namespace HDCircles.Hackathon
@@ -26,6 +27,7 @@ namespace HDCircles.Hackathon
         public double AltitudeSetpoint {
             get => altitudeSetpoint;
             set {
+                Debug.Print($"Info:AltitudeSet: {value}");
                 altitudeSetpoint = value;
                 altitudeController.SetPoint = altitudeSetpoint;
             }
@@ -99,14 +101,15 @@ namespace HDCircles.Hackathon
             // update altitude controller
 
 
-
+            
             throttleCmd = altitudeController.Update(altitude, vz);
             
 
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
-            altitudeController.Start(altitude, altitude, vz);
+            double defaultTakeoffAltitude = 1.2;
+            altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
         }
 
         public void SetAllCommand(double yaw, double altitude, double relativeX, double relativeY)
@@ -116,12 +119,21 @@ namespace HDCircles.Hackathon
 
 
         }
+
+        public void SetAltitudeStepCommand(double step)
+        {
+            Debug.Print($"Info:SetAltitudeStepCommand: {step}");
+            AltitudeSetpoint = AltitudeSetpoint + step;
+           
+
+
+        }
         //private void Instance_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
         //{
         //    //var isReg = errorCode == SDKError.NO_ERROR;
 
         //}
 
-   
+
     }
 }

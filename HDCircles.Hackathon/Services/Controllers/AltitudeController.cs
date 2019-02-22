@@ -1,5 +1,6 @@
 ﻿using DJI.WindowsSDK;
 using System;
+using System.Diagnostics;
 using System.Threading;
 // this implement a simple PD controller, using the Z, and Vz
 
@@ -24,11 +25,11 @@ namespace HDCircles.Hackathon
             this.OutputMin = -1f;
         }
 
-        public void Start(double setpoint, double processVariable, double processVariableRate)
+        public void Start(double currentSetpoint, double currentProcessVariable, double currentProcessVariableRate)
         {
-            this.SetPoint = setpoint;
-            this.ProcessVariable = processVariable;
-            this.ProcessVariableRate = processVariableRate;
+            this.SetPoint = currentSetpoint;
+            this.ProcessVariable = currentProcessVariable;
+            this.ProcessVariableRate = currentProcessVariableRate;
 
         }
 
@@ -40,8 +41,13 @@ namespace HDCircles.Hackathon
         /// <param name="timeSinceLastUpdate">timespan of the elapsed time
         /// since the previous time that ControlVariable was called</param>
         /// <returns>Value of the variable that needs to be controlled</returns>
-        public double Update(double ProcessVariable, double ProcessVariableRate)
+        public double Update(double currentProcessVariable, double currentProcessVariableRate)
         {
+            // update the property with current feedback
+            ProcessVariable = currentProcessVariable;
+            ProcessVariableRate = currentProcessVariableRate;
+            
+            // work out the control
             double error = SetPoint - ProcessVariable;
        
             // proportional term calcullation
@@ -49,6 +55,7 @@ namespace HDCircles.Hackathon
 
             output = Clamp(output);
 
+            Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {SetPoint}, Output: { output}");
             return output;
         }
 

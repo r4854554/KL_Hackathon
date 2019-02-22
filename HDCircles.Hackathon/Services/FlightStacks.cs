@@ -15,14 +15,25 @@ using System.Net;
 
 namespace HDCircles.Hackathon.Services
 {
-
-
+    
     public class FlightStacks
     {
         public struct UdpState
         {
             public UdpClient u;
             public IPEndPoint e;
+        }
+
+        private static FlightStacks _instance;
+        public static FlightStacks Instance
+        {
+            get
+            {
+                if (null == _instance)
+                    _instance = new FlightStacks();
+
+                return _instance;
+            }
         }
 
         public Drone _drone;
@@ -33,24 +44,23 @@ namespace HDCircles.Hackathon.Services
         private long updateInterval = 100L; // milliseconds
         private bool _isInitialised = false;
 
+        private bool _isMissionDone = false;
+
         private bool _isStarted = false;
         IPEndPoint RemoteIpEndPoint;
         // Port number
         private const int _statePort = 11000;
-        //Creates a UdpClient for reading incoming data.
-        //private IPEndPoint receivingEndPoint = new IPEndPoint(IPAddress.Any, 0);
         
-        //UdpClient receivingUdpClient = new UdpClient(12000);
         UdpClient sendingUdpClient = new UdpClient("127.0.0.1", _statePort);
 
         public static CoreDispatcher Dispatcher { get; set; }
 
         private BackgroundWorker backgroundWorker;
-
-        public FlightStacks()    
+        
+        private FlightStacks()    
         {
+            // udp port for debug
             RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.31.65"), 15000);
-
             Debug.WriteLine("Info:DroneController: constructor");
 
             if (!_isInitialised)
@@ -144,16 +154,37 @@ namespace HDCircles.Hackathon.Services
                 _drone.EmergencyLanding();
             }
 
-            // check start condition
-            if (_drone._isSdkRegistered)
+            // Need to deicid when to start controllercheck start condition
+            if (_drone._isSdkRegistered && !_isStarted)
             {
                 Start();
+                _isStarted = true;
             }
-            
-            // get setpoint
-            
 
-            // only update afte start the whole controller
+            // Setpoint: set point is 
+
+            //if (!_isMissionDone && _drone._isSdkRegistered)
+            //{
+            //    var watch = Stopwatch.StartNew();
+
+            //    var elapsed = 0L;
+            //    var sleepTime = 0;
+
+            //    watch.Reset();
+            //    watch.Start();
+
+
+            //    elapsed = watch.ElapsedMilliseconds;
+
+            //    watch.Stop();
+
+            //}
+
+
+            // Update: only update afte start the whole controller
+            //      Update the current process variable 
+            //      Update the crrent time
+            //      Update the control variable  
             if (_isStarted)
             {
                 // update postion controller
