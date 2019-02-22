@@ -65,6 +65,7 @@
             commandManger.CreateCommand(Commands.KeyDown);
 
             /// initialize the instance
+            var logger = Logger.Instance;
             var drone = Drone.Instance;
             var posController = PosController.Instance;
 
@@ -73,6 +74,8 @@
             var qrcodeDetector = QrcodeDetector.Instance;
 
             var rootFrame = Window.Current.Content as Frame;
+
+            logger.Log("service initialized");
 
             // 當視窗中已有內容時，不重複應用程式初始化，
             // 只確定視窗是作用中

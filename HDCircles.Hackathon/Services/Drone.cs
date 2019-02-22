@@ -223,7 +223,7 @@ namespace HDCircles.Hackathon.Services
                     StateChanged.Invoke(_currentState);
                 }
 
-                //Debug.WriteLine($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
+                Logger.Instance.Log($"yaw: {yaw} pitch: {pitch} roll: {roll} altitude: {altitudeValue}");
             }
         }
 

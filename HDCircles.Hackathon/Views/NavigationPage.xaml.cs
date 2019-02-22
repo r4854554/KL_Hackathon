@@ -87,7 +87,16 @@ namespace HDCircles.Hackathon.Views
             //    Tag = nameof(GraphPage),
             //    ViewType = typeof(GraphPage),
             //});
-
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Misc",
+            });
+            menuItems.Add(new NavigationMenuItem
+            {
+                Name = "Logger",
+                Tag = nameof(LogPage),
+                ViewType = typeof(LogPage),
+            });
             // initialize navigation menu items
             foreach (var item in menuItems)
             {
@@ -102,6 +111,8 @@ namespace HDCircles.Hackathon.Views
                     NavView.MenuItems.Add(item.Name);
                 }
             }
+
+            ContentFrame.Navigate(menuItems.First(x => null != x.ViewType).ViewType);
         }
 
         private void NavigationView_ItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
