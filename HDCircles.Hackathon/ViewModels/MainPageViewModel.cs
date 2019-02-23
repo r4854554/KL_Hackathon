@@ -945,11 +945,21 @@
                     break;
                 case VirtualKey.Up:
                     Debug.WriteLine("Info:KeyDownExecute:Up");
-                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(0.7);
+                    //FlightStacks.Instance._positionController.SetAltitudeStepCommand(0.05);
+                    FlightStacks.Instance._positionController.AltitudeSetpoint = 1.5;
                     break;
                 case VirtualKey.Down:
                     Debug.WriteLine("Info:KeyDownExecute:Up");
-                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(-0.7);
+                    //FlightStacks.Instance._positionController.SetAltitudeStepCommand(-0.05);
+                    FlightStacks.Instance._positionController.AltitudeSetpoint = 1.0;
+                    break;
+                case VirtualKey.PageDown:
+                    //Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetYawStepCommand(0.5);
+                    break;
+                case VirtualKey.PageUp:
+                    //Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
                     break;
             }
 
