@@ -75,9 +75,9 @@ namespace HDCircles.Hackathon.Services
         
         public MissionArgs Args { get; set; }
 
-        protected Func<Task> _task;
+        protected Action _task;
 
-        protected Func<Task> Task => _task;
+        protected Action Task => _task;
 
         protected virtual Func<bool> IsCompleted { get; }
 
@@ -112,13 +112,12 @@ namespace HDCircles.Hackathon.Services
 
             try
             {
-
-                missionTaskObj = Task();
-                //missionTaskObj.Start();
+                System.Threading.Tasks.Task.Run(Task);
             }
             catch (Exception ex)
             {
                 Debug.WriteLine($"mission {Id} - {Type}: {ex.ToString()}");
+                Result = false;
             }
         }
 
@@ -163,9 +162,9 @@ namespace HDCircles.Hackathon.Services
 
         protected override Func<bool> IsCompleted => IsCompletedExecute;
 
-        private async Task TaskExecute()
+        private void TaskExecute()
         {
-            await Drone.Instance.TakeOff();
+            Drone.Instance.TakeOff().Wait();
         }
 
         private bool IsCompletedExecute()
@@ -185,7 +184,7 @@ namespace HDCircles.Hackathon.Services
 
         protected override Func<bool> IsCompleted => IsCompletedExecute; 
 
-        private async Task TaskExecute()
+        private void TaskExecute()
         {
             Drone.Instance.EmergencyLanding();
         }
@@ -207,7 +206,7 @@ namespace HDCircles.Hackathon.Services
 
         protected override Func<bool> IsCompleted => IsCompleteExecute;
 
-        private async Task TaskExecute()
+        private void TaskExecute()
         {
             var args = Args;
             
@@ -242,7 +241,7 @@ namespace HDCircles.Hackathon.Services
 
         protected override Func<bool> IsCompleted => IsCompleteExecute;
 
-        private async Task TaskExecute()
+        private void TaskExecute()
         { }
 
         private bool IsCompleteExecute()

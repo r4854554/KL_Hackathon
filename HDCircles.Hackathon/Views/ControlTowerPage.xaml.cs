@@ -299,11 +299,11 @@
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
 
-                Thread.Sleep(3500);
+                //Thread.Sleep(3500);
 
-                //Commander.Instance.AddSetPointMission(35, 1.7f, 0, 0, 13);
-                //Commander.Instance.AddSetPointMission(35, 1.1f, 0, 0, 12);
-                //Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, 11);
+                Commander.Instance.AddSetPointMission(35, 1.5f, 0, 0, 13, true);
+                Commander.Instance.AddSetPointMission(35, 0.9f, 0, 0, 12, true);
+                Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, 11, true);
                 //Commander.Instance.AddSetPointMission(-145, 0.5f, 0, 0, 11);
                 //Commander.Instance.AddSetPointMission(-145, 1.1f, 0, 0, 11);
                 //Commander.Instance.AddSetPointMission(-145, 1.7f, 0, 0, 10);
