@@ -197,14 +197,14 @@ namespace HDCircles.Hackathon.Services
                 //if (throttleCmd!=0f || rollCmd != 0f || pitchCmd != 0f || yawCmd != 0f)
                 //{
                     _drone.SetJoystick(throttleCmd,yawCmd, pitchCmd, rollCmd);
-                    Debug.WriteLine($"Info:ControlLoop: {throttleCmd} ");
+                    //Debug.WriteLine($"Info:ControlLoop: {throttleCmd} ");
                 //} 
                
                 DateTime localDate = DateTime.Now;;
-                Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +
-                    $"|yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} z- {_drone.CurrentState.Altitude}"
-                    + $"\t|Vx - {_drone.CurrentState.Vx} pitch - {_drone.CurrentState.Vx} Vy - {_drone.CurrentState.Vy} Vz- {_drone.CurrentState.Vz}"
-                    + $"");
+                //Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +
+                //    $"|yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} z- {_drone.CurrentState.Altitude}"
+                //    + $"\t|Vx - {_drone.CurrentState.Vx} pitch - {_drone.CurrentState.Vx} Vy - {_drone.CurrentState.Vy} Vz- {_drone.CurrentState.Vz}"
+                //    + $"");
 
             }
 

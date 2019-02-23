@@ -11,19 +11,21 @@ namespace HDCircles.Hackathon
     public sealed class YawController
 
     {
-         public YawController(double GainProportional, double GainDerivative)
+         public YawController(double GainProportional, double GainIntegration, double GainDerivative)
         {
             // call when the object is constructed
-            Init(GainProportional, GainDerivative);
+            Init(GainProportional, GainIntegration, GainDerivative);
         }
 
-        public void Init(double GainProportional, double GainDerivative)
+        public void Init(double GainProportional, double GainIntegration, double GainDerivative)
         {
             // call when the object is constructed, 
             this.GainDerivative = GainDerivative;
             this.GainProportional = GainProportional;
+            this.GainIntegration = GainIntegration;
             this.OutputMax = 1f;
             this.OutputMin = -1f;
+            this.StateIntegration = 0;
         }
 
         public void Start(double currentSetpoint, double currentProcessVariable, double currentProcessVariableRate)
@@ -32,7 +34,7 @@ namespace HDCircles.Hackathon
             this.SetPoint = currentSetpoint;
             this.ProcessVariable = currentProcessVariable;
             this.ProcessVariableRate = currentProcessVariableRate;
-
+            this.StateIntegration = 0;
         }
         /// <summary>
         /// The controller output
@@ -48,13 +50,22 @@ namespace HDCircles.Hackathon
             
             // work out the control
             double error = SetPoint - ProcessVariable;
-            double output = GainProportional * (error + ProcessVariableRate*GainDerivative); // it add the derivative term becasue the zv is the other sign
+            if (error > 180)
+                error -= 360;
+            else if (error < -180)
+                error += 360;
+            double errorToIntegration = Clamp(error, 5f, -5f);
+
+            this.StateIntegration += errorToIntegration;
+            this.StateIntegration = Clamp(this.StateIntegration, 60, -60);
+
+            double output = GainProportional * error + GainIntegration * this.StateIntegration; // it add the derivative term becasue the zv is the other sign
             output = Clamp(output,OutputMax, OutputMin);
 
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
             UdpDebug.Instance.SendUdpDebug(udpData);
 
-            Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable}, ProcessVarRate: {ProcessVariableRate}, Output: { output}");
+            //Debug.WriteLine($"Info:YawController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable} , Output: {output}");
             return output;
         }
 
@@ -102,6 +113,17 @@ namespace HDCircles.Hackathon
         public double GainProportional { get; set; } = 0;
 
         /// <summary>
+        /// The integeration term produces an output value that
+        /// is proportional to the integeration of error value
+        /// </summary>
+        public double GainIntegration { get; set; } = 0;
+
+        /// <summary>
+        /// the integration of error during control process
+        /// </summary>
+        private double StateIntegration = 0;
+
+        /// <summary>
         /// The max output value the control device can accept.
         /// </summary>
         public double OutputMax { get; private set; } = 0;
@@ -125,7 +147,19 @@ namespace HDCircles.Hackathon
             get => _setPoint;
             set {
 
-                _setPoint = Clamp(value, SetPointMax, SetPointMin);
+                _setPoint = value;
+
+                while(_setPoint > 180)
+                {
+                    _setPoint -= 360;
+                }
+
+                while(_setPoint < -180)
+                {
+                    _setPoint += 360;
+                }
+
+                //_setPoint = Clamp(value, SetPointMax, SetPointMin);
              
             }
         }
@@ -147,8 +181,8 @@ namespace HDCircles.Hackathon
         }
 
         private double processVariable = 0;
-        private double SetPointMax = 3;
-        private double SetPointMin = 0.3;
+        private double SetPointMax = 180;
+        private double SetPointMin = -180;
 
 
     }
