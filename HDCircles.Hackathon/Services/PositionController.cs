@@ -9,6 +9,7 @@ namespace HDCircles.Hackathon
     {
         AltitudeController altitudeController;
         YawController yawController;
+        LateralController lateralController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
         private const double Gain_p_yaw = 0.05;
@@ -127,6 +128,11 @@ namespace HDCircles.Hackathon
            
         }
 
+        // LeteralController
+        public bool RightSide { get; set; } = true;
+        public double TargetIndex { get; set; } = 0;
+        public double CurrentIndex { get; set; } = 0;
+
         // constructor
         private static PositionController _instance;
         public static PositionController Instance
@@ -148,6 +154,7 @@ namespace HDCircles.Hackathon
         {
             altitudeController = new AltitudeController(Gain_p_alt, Gain_d_alt);
             yawController = new YawController(Gain_p_yaw, Gain_i_yaw, Gain_d_yaw);
+            lateralController = new LateralController();
         }
 
         public void Reset()
@@ -173,7 +180,8 @@ namespace HDCircles.Hackathon
             ThrottleCmd = altitudeController.Update(altitude, vz);
             double falseRate = 0.0;
             YawCmd = yawController.Update(yaw, falseRate);
-            
+            // update lateralController
+            RollCmd = lateralController.Update(CurrentIndex, TargetIndex, RightSide);
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
@@ -182,6 +190,7 @@ namespace HDCircles.Hackathon
             AltitudeSetpoint = defaultTakeoffAltitude;
             yawController.Start(yaw, yaw, 0.0);
             YawSetpoint = yaw;
+            lateralController.Start();
         }
 
         public void SetAltitudeStepCommand(double step)
