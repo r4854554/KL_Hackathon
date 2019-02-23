@@ -215,7 +215,7 @@ namespace HDCircles.Hackathon.Services
             //PositionController.Instance.RelativeXSetpoint = args.RelativeX;
             //PositionController.Instance.RelativeYSetpoint = args.RelativeY;
 
-            PositionController.Instance.TargetIndex = args.RelativeX;
+            PositionController.Instance.TargetIndex = args.PositionId;
             PositionController.Instance.RightSide = true;
         }
 
