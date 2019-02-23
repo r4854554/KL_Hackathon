@@ -10,6 +10,21 @@ using System.Timers;
 
 namespace HDCircles.Hackathon.Services
 {
+    public delegate void CommanderStateHandler(CommanderState state);
+
+    public struct CommanderState
+    {
+        public Mission CurrentMission { get; }
+
+        public Mission NextMission { get; }
+
+        public CommanderState(Mission currentMission, Mission nextMission)
+        {
+            CurrentMission = currentMission;
+            NextMission = nextMission;
+        }
+    }
+
     public enum MissionType
     {
         SetPoint = 1,
@@ -102,10 +117,6 @@ namespace HDCircles.Hackathon.Services
             {
                 Debug.WriteLine($"mission {Id} - {Type}: {ex.ToString()}");
             }
-
-            //timer = new System.Timers.Timer(Timeout);
-            //timer.Elapsed += Timer_Timeout;
-            //timer.Start();
         }
 
         public bool CheckIfCompleted()
@@ -122,9 +133,6 @@ namespace HDCircles.Hackathon.Services
             if (result)
             {
                 Debug.WriteLine($"Mission {Id} {Type} is completed...");
-
-                if (null != timer && timer.Enabled)
-                    timer.Stop();
 
                 Result = result;
             }
@@ -248,6 +256,8 @@ namespace HDCircles.Hackathon.Services
 
     public sealed class Commander
     {
+        public event CommanderStateHandler MissionUpdated;
+
         /// <summary>
         /// for stack operations.
         /// </summary>
@@ -328,6 +338,7 @@ namespace HDCircles.Hackathon.Services
                 catch (Exception ex)
                 {
                     Debug.WriteLine("Cmd Worker: " + ex.ToString());
+                    Debugger.Break();
                 }
 
                 watch.Stop();
@@ -342,10 +353,18 @@ namespace HDCircles.Hackathon.Services
         private async Task ExecuteMission()
         {
             var mission = default(Mission);
+            var nextMission = default(Mission);
 
             lock (stackLock)
             {
                 mission = currentMission;
+                nextMission = activeMissions.Any() ? activeMissions.First() : null;
+                
+                if (null != MissionUpdated)
+                {
+                    var state = new CommanderState(mission, nextMission);
+                    MissionUpdated.Invoke(state);
+                }
             }
 
             // step 1. check if there is a mission begin executed
@@ -365,6 +384,12 @@ namespace HDCircles.Hackathon.Services
                     // mission completed, put it into bucket.
                     completedMissions.Add(mission);
                     currentMission = null;
+                    
+                    if (null != MissionUpdated)
+                    {
+                        var state = new CommanderState(null, nextMission);
+                        MissionUpdated.Invoke(state);
+                    }
                 }
             }
 
@@ -374,12 +399,19 @@ namespace HDCircles.Hackathon.Services
                 // no more mission, skip this cycle.
                 if (!activeMissions.Any())
                 {
-                    Logger.Instance.Log("empty mission stack...");
                     return;
                 }
 
                 mission = activeMissions.Dequeue();
                 currentMission = mission;
+
+                nextMission = activeMissions.Any() ? activeMissions.First() : null;
+
+                if (null != MissionUpdated)
+                {
+                    var state = new CommanderState(mission, nextMission);
+                    MissionUpdated.Invoke(state);
+                }
             }
 
             try
@@ -388,7 +420,7 @@ namespace HDCircles.Hackathon.Services
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"Cmd Executor: ${ex.ToString()}");
+                Debug.WriteLine($"Cmd Executor: ${ex.ToString()}"); Debugger.Break();
             }
         }
 

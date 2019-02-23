@@ -40,6 +40,7 @@
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
                 <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
             </Grid.ColumnDefinitions>
 
             <Button Grid.Column="0" 
@@ -104,6 +105,23 @@
                         Background="Orange" Foreground="Black"
                         Click="StartMissionButton_Click" />
             </StackPanel>
+            <Grid Grid.Column="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <TextBlock Grid.Column="0" Grid.Row="0" Text="Current Task" />
+                <TextBlock Grid.Column="1" Grid.Row="0" x:Name="CurrentTaskText" />
+
+                <TextBlock Grid.Column="0" Grid.Row="1" Text="Next Task" />
+                <TextBlock Grid.Column="1" Grid.Row="1" x:Name="NextTaskText" />
+            </Grid>
         </Grid>
 
         <Grid Grid.Row="2">

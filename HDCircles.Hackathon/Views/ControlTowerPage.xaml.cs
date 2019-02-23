@@ -6,6 +6,8 @@
     using System;
     using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.WindowsRuntime;
+    using System.Threading;
+    using System.Threading.Tasks;
     using Windows.UI.Core;
     using Windows.UI.Xaml;
     using Windows.UI.Xaml.Controls;
@@ -63,6 +65,11 @@
         private void ControlTowerPage_Loaded(object sender, RoutedEventArgs e)
         {
             DJISDKManager.Instance.SDKRegistrationStateChanged += Instance_SDKRegistrationStateChanged;
+
+            if (DJISDKManager.Instance.SDKRegistrationResultCode == SDKError.NO_ERROR)
+            {
+                Instance_SDKRegistrationStateChanged(SDKRegistrationState.Succeeded, SDKError.NO_ERROR);
+            }
         }
 
         private void Instance_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
@@ -72,7 +79,20 @@
             if (isRegistered)
             {
                 PosController.Instance.PoseUpdated += Instance_PoseUpdated;
+                Commander.MissionUpdated += Commander_MissionUpdated;
             }
+        }
+
+        private async void Commander_MissionUpdated(CommanderState state)
+        {
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                var currentMission = state.CurrentMission;
+                var nextMission = state.NextMission;
+
+                CurrentTaskText.Text = null != currentMission ? $"{currentMission.Id} - {currentMission.Type}" : "None";
+                NextTaskText.Text = null != nextMission ? $"{nextMission.Id} - {nextMission.Type}" : "None";
+            });
         }
 
         private async void Instance_PoseUpdated(ApriltagPoseEstimation pose)
@@ -260,14 +280,15 @@
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
 
-                Commander.Instance.AddSetPointMission(0, 1.7f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(180, 0.5f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(180, 1.1f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(180, 1.7f, 0, 0, "301");
-                
+                Thread.Sleep(3000);
 
+                Commander.Instance.AddSetPointMission(35, 1.7f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(35, 1.1f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(-145, 0.5f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(-145, 1.1f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(-145, 1.7f, 0, 0, "301");
+                
                 EnableInputs();
             }
         }
