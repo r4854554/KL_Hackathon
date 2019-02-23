@@ -91,6 +91,7 @@
                 {
                     //if (value != 0.0) { _averrageQrIndex = value; }
                     _averrageQrIndex = value;
+                    
                 }
             }
         }
@@ -894,7 +895,8 @@
 
                     AverrageQrCount = tempAverageQrCount;
                     AverrageQrIndex = tempAverrageQrIndex;
-                    //Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
+                    
+                    Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
                     if (AverrageQrCount > 0) { FlightStacks.Instance._positionController.CurrentIndex = AverrageQrIndex / AverrageQrCount; }
                     
                     //#region by chriss. for debugging and tracing the current qrcode coordination
@@ -1076,7 +1078,7 @@
                 case VirtualKey.PageUp:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
-                    FlightStacks.Instance._positionController.TargetIndex = 0; // FlightStacks.Instance._positionController.TargetIndex + 1;
+                    FlightStacks.Instance._positionController.TargetIndex = 11; // FlightStacks.Instance._positionController.TargetIndex + 1;
                     break;
             }
 

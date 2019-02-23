@@ -175,6 +175,10 @@ namespace HDCircles.Hackathon
             Marshal.Copy(grayMat.Data, buffer, 0, length);
 
             var results = br.DecodeBuffer(buffer, grayMat.Cols, grayMat.Rows, stride, EnumImagePixelFormat.IPF_GrayScaled, "");
+            if (results.Length == 0)
+            {
+                FlightStacks.Instance._positionController.CurrentIndex = 0;
+            }
             var pose = new ApriltagPoseEstimation(results, frame);
             //var aprilTag = new AprilTag("canny", false, "tag36h11", 0.8, 1, 400);
             //var detections = aprilTag.Detect(frame.Height, frame.Width, frame.Data);
@@ -182,6 +186,8 @@ namespace HDCircles.Hackathon
 
             if (null != PoseUpdated)
             {
+
+
                 PoseUpdated.Invoke(pose);
             }
         }

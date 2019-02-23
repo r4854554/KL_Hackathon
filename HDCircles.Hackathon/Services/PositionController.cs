@@ -127,6 +127,7 @@ namespace HDCircles.Hackathon
             }
            
         }
+        
 
         // LeteralController
         public bool RightSide { get; set; } = false;
@@ -221,6 +222,7 @@ namespace HDCircles.Hackathon
             double falseRate = 0.0;
             YawCmd = yawController.Update(yaw, falseRate);
             // update lateralController
+
 
             RollCmd = lateralController.Update(CurrentIndex, TargetIndex, RightSide);
             //Debug.Print($"RollCmd: { }");
