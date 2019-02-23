@@ -93,7 +93,7 @@
                     bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
 
                     LiveFrameSource.Invalidate();
-                    PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
+                    //PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
                 }
             });
         }

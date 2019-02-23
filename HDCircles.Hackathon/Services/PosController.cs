@@ -1,11 +1,14 @@
 ﻿using AprilTagsSharp;
 using DJI.WindowsSDK;
+using Dynamsoft.Barcode;
 using HDCircles.Hackathon.Services;
 using OpenCvSharp;
 using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -20,38 +23,44 @@ namespace HDCircles.Hackathon
     {
         public LiveFrame Frame { get; }
 
-        public int TagId { get; }
+        public TextResult[] DetectResults { get; }
 
-        public double Yaw { get; }
+        //public int TagId { get; }
 
-        public double Pitch { get; }
+        //public double Yaw { get; }
 
-        public double Roll { get; }
+        //public double Pitch { get; }
 
-        public double Tx { get; }
+        //public double Roll { get; }
 
-        public double Ty { get; }
+        //public double Tx { get; }
 
-        public double Tz { get; }
+        //public double Ty { get; }
 
-        public ApriltagPoseEstimation(int tagId, double yaw, double pitch, double roll, double tx, double ty, double tz, LiveFrame frame)
+        //public double Tz { get; }
+        
+
+        public ApriltagPoseEstimation(TextResult[] results, LiveFrame frame)
         {
-            TagId = tagId;
+            //TagId = tagId;
 
-            Yaw = yaw;
-            Pitch = pitch;
-            Roll = roll;
+            //Yaw = yaw;
+            //Pitch = pitch;
+            //Roll = roll;
 
-            Tx = tx;
-            Ty = ty;
-            Tz = tz;
+            //Tx = tx;
+            //Ty = ty;
+            //Tz = tz;
 
+            DetectResults = results;
             Frame = frame;
         }
     }
 
     public class PosController
     {
+        private const string DynamsoftAppKey = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
+
         public event PoseEstimationHandler PoseUpdated;
 
         private Thread _thread;
@@ -127,20 +136,20 @@ namespace HDCircles.Hackathon
                     continue;
                 }
 
-                var detections = DetectApriltag(liveFrame);
+                DetectApriltag(liveFrame);
 
-                detections.Wait();
+                //detections.Wait();
 
-                var result = detections.Result;
+                //var result = detections.Result;
 
-                if (null != result && result.Count > 0)
-                {
-                    var det = result[0] as Detector;
+                //if (null != result && result.Count > 0)
+                //{
+                //    var det = result[0] as Detector;
 
-                    PoseEstimate(liveFrame, det).Wait();
-                }
+                //    PoseEstimate(liveFrame, det).Wait();
+                //}
 
-                Debug.WriteLine($"yaw: {PoseEstimation.Yaw}, tz: {PoseEstimation.Tz}");
+                //Debug.WriteLine($"yaw: {PoseEstimation.Yaw}, tz: {PoseEstimation.Tz}");
 
                 watch.Stop();
                 elapsed = watch.ElapsedMilliseconds;
@@ -150,12 +159,30 @@ namespace HDCircles.Hackathon
             }
         }
 
-        private async Task<ArrayList> DetectApriltag(LiveFrame frame)
+        private async Task DetectApriltag(LiveFrame frame)
         {
-            var aprilTag = new AprilTag("canny", false, "tag36h11", 0.8, 1, 400);
-            var detections = aprilTag.Detect(frame.Height, frame.Width, frame.Data);
+            var br = new BarcodeReader(DynamsoftAppKey);
+            var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+            var grayMat = new Mat();
 
-            return detections;
+            Cv2.CvtColor(srcMat, grayMat, ColorConversionCodes.RGBA2GRAY);
+
+            var stride = grayMat.Cols * grayMat.ElemSize();
+            var length = stride * grayMat.Rows;
+            var buffer = new byte[length];
+
+            Marshal.Copy(grayMat.Data, buffer, 0, length);
+
+            var results = br.DecodeBuffer(buffer, grayMat.Cols, grayMat.Rows, stride, EnumImagePixelFormat.IPF_GrayScaled, "");
+            var pose = new ApriltagPoseEstimation(results, frame);
+            //var aprilTag = new AprilTag("canny", false, "tag36h11", 0.8, 1, 400);
+            //var detections = aprilTag.Detect(frame.Height, frame.Width, frame.Data);
+            //var structedResults = results.Select(x => new ApriltagPoseEstimation(x.BarcodeText, x.LocalizationResult, frame)).ToList();
+
+            if (null != PoseUpdated)
+            {
+                PoseUpdated.Invoke(pose);
+            }
         }
 
         private async Task PoseEstimate(LiveFrame frame, Detector det)
@@ -179,14 +206,14 @@ namespace HDCircles.Hackathon
             //var d = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2) + Math.Pow(tz, 2));
 
             lock (updateLock) {
-                var poseEstimation = new ApriltagPoseEstimation(det.id, yaw, pitch, roll, tx, ty, tz, frame);
+                //var poseEstimation = new ApriltagPoseEstimation(det.id, yaw, pitch, roll, tx, ty, tz, frame);
 
-                PoseEstimation = poseEstimation;
+                //PoseEstimation = poseEstimation;
 
-                if (null != PoseUpdated)
-                {
-                    PoseUpdated.Invoke(poseEstimation);
-                }
+                //if (null != PoseUpdated)
+                //{
+                //    PoseUpdated.Invoke(poseEstimation);
+                //}
             }
         }
 
