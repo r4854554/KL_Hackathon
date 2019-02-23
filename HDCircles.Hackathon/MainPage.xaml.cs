@@ -15,9 +15,13 @@
 
         private readonly MainPageViewModel _viewModel;
 
+        
+
         public MainPage()
         {
             InitializeComponent();
+
+
 
             var dependencyResolver = this.GetDependencyResolver();
             var typeFactory = this.GetTypeFactory();

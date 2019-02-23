@@ -11,6 +11,7 @@
     using CustomVision;
     using DJI.WindowsSDK;
     using Dynamsoft.Barcode;
+    using HDCircles.Hackathon.util;
     using OpenCvSharp;
     using Windows.Graphics.Imaging;
     using Windows.Media;
@@ -289,6 +290,7 @@
 
                     br.LicenseKeys = DynamsoftAppKey;
                     results = br.DecodeBuffer(data, frame.Width, frame.Height, stride, EnumImagePixelFormat.IPF_GrayScaled, "");
+                    
                 }
 
                 if (null != QrcodeDetected)

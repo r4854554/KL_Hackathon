@@ -62,7 +62,6 @@
         private const string APP_KEY = "cb98b917674f98a483eb9228";
         private const string Dynamsoft_App_Key = "t0068NQAAALjRYgQPyFU9w77kwoOtA6C+n34MIhvItkLV0+LcUVEef9fN3hiwyNTlUB8Lg+2XYci3vEYVCc4mdcuhAs7mVMg=";
         private BarcodeReader br;
-        private Regex LocationTagReg = new Regex(@"^[A-Z]{2}[0-9]{6}$");
         private Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
         public List<string> ResultLocation = new List<string>();
         public List<List<string> > ResultCarton = new List<List<string> >();
@@ -72,7 +71,52 @@
 
         private long qrcodeDetectFrequence = 250L;
 
+
         private object frameLock = new object();
+
+        private object indexLock = new object();
+
+        private double _averrageQrIndex;
+        public double AverrageQrIndex
+        {
+            get
+            {
+                lock (indexLock)
+                {
+                    return _averrageQrIndex;
+                }
+            }
+            set
+            {
+                lock (indexLock)
+                {
+                    if (value != 0.0) { _averrageQrIndex = value; }
+                    
+                }
+            }
+        }
+
+
+        //private double _averrageQrIndexLateral;
+        //public double AverrageQrIndexLateral
+        //{
+        //    get
+        //    {
+        //        lock (indexLock)
+        //        {
+        //            return _averrageQrIndexLateral;
+        //        }
+        //    }
+        //    set
+        //    {
+        //        lock (indexLock)
+        //        {
+        //            _averrageQrIndexLateral = value;
+        //        }
+        //    }
+        //}
+
+        public double AverrageQrCount { get; set; } = 0;
 
         public WriteableBitmap LiveFrameSource
         {
@@ -103,6 +147,7 @@
 
         private DateTime processStart = DateTime.Now;
         private DateTime imageFpsStart = DateTime.Now;
+        private Regex LocationTagReg = new Regex(@"^ [A-Z] [0-9]{2} [0-9]{2} [0-9] [0-9]{2}$");
 
         #endregion Fields
 
@@ -804,7 +849,8 @@
                     rootGrid.KeyUp += MainPage_KeyUp;
                 }
 
-                QrcodeDetector.Instance.QrcodeDetected += Instance_QrcodeDetected;
+                //QrcodeDetector.Instance.QrcodeDetected += Instance_QrcodeDetected;
+                PosController.Instance.PoseUpdated += Instance_PoseUpdated;
 
                 var fcHandler = GetFlightControllerHandler();
                 var cameraHandler = GetCameraHandler();
@@ -824,6 +870,75 @@
                 _isInitialized = true;
 
                 Thread.Sleep(300);
+            });
+        }
+
+        private async void Instance_PoseUpdated(ApriltagPoseEstimation pose)
+        {
+            if (pose.DetectResults == null || pose.DetectResults.Length == 0)
+                return;
+
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                lock (frameLock)
+                {
+                    var frame = pose.Frame;
+                    var bgraData = new byte[frame.Data.Length];
+
+                    var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+                    var bgraMat = new Mat();
+
+                    Cv2.CvtColor(srcMat, bgraMat, ColorConversionCodes.RGBA2BGRA);
+
+                    Marshal.Copy(bgraMat.Data, bgraData, 0, frame.Data.Length);
+
+                    if (LiveFrameSource == null || LiveFrameSource.PixelWidth != frame.Width || LiveFrameSource.PixelHeight != frame.Height)
+                    {
+                        LiveFrameSource = new WriteableBitmap(frame.Width, frame.Height);
+                    }
+
+                    bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
+
+                    LiveFrameSource.Invalidate();
+                    var tempAverrageQrIndex = 0;
+                    var tempAverageQrCount = 0;
+                    
+                    foreach (var result in pose.DetectResults)
+                    {
+                        //Debug.Print($"{ result.BarcodeText}\n");
+
+                        var locReg = new Regex(@"^[A-Z]{2}[0-9]{1}[0-9]{2}[0-9][0-9]{2}$");
+                        
+                        
+                        // only care about location tag
+                        if (locReg.Match(result.BarcodeText).Success)
+                        {
+                            var LocationTag = result.BarcodeText;
+                            var pos = Regex.Match(result.BarcodeText, @"(.{2})\s*$"); ;
+                            var num = Int32.Parse(pos.Value);
+
+                            tempAverrageQrIndex = tempAverrageQrIndex + num;
+                            //AverrageQrIndex = AverrageQrIndex + num;
+                            tempAverageQrCount += 1;
+                            
+                        }
+                    }
+
+                    AverrageQrCount = tempAverageQrCount;
+                    AverrageQrIndex = tempAverrageQrIndex;
+                    //Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
+                    if (AverrageQrCount > 0) { FlightStacks.Instance._positionController.CurrentIndex = AverrageQrIndex / AverrageQrCount; }
+                    
+                    //#region by chriss. for debugging and tracing the current qrcode coordination
+                    //var h = new Heuristic();
+                    //if (results.Length >= 3)
+                    //{
+                    //    h.LRHeuristic(results[0].BarcodeText, results[1].BarcodeText, results[2].BarcodeText);
+                    //}
+                    //#endregion
+
+                    //DecodeText = qrcode.Results;
+                }
             });
         }
 
@@ -988,12 +1103,12 @@
                 case VirtualKey.PageDown:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(0.5);
-                    FlightStacks.Instance._positionController.YawSetpoint = 10;
+                    FlightStacks.Instance._positionController.TargetIndex = 13; // FlightStacks.Instance._positionController.CurrentIndex - 1;
                     break;
                 case VirtualKey.PageUp:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
-                    FlightStacks.Instance._positionController.YawSetpoint = -170;
+                    FlightStacks.Instance._positionController.TargetIndex = 14; // FlightStacks.Instance._positionController.TargetIndex + 1;
                     break;
             }
 

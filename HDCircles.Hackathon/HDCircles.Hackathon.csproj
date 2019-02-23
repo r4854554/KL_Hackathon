@@ -132,6 +132,7 @@
     <Compile Include="Services\Logger.cs" />
     <Compile Include="Services\PosController.cs" />
     <Compile Include="Services\QrcodeDetector.cs" />
+    <Compile Include="util\Heuristic.cs" />
     <Compile Include="Views\ActivationPage.xaml.cs">
       <DependentUpon>ActivationPage.xaml</DependentUpon>
     </Compile>
@@ -337,9 +338,7 @@
       <HintPath>..\DJIWindowsSDK\DJIWindowsSDK.dll</HintPath>
     </Reference>
   </ItemGroup>
-  <ItemGroup>
-    <Folder Include="util\" />
-  </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

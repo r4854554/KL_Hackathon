@@ -21,6 +21,8 @@ namespace HDCircles.Hackathon
         {
             this.GainDerivative = GainDerivative;
             this.GainProportional = GainProportional;
+            this.GainIntegration = 0.01;
+            this.StateIntegration = 0;
             this.OutputMax = 1f;
             this.OutputMin = -1f;
         }
@@ -47,7 +49,9 @@ namespace HDCircles.Hackathon
             
             // work out the control
             double error = SetPoint - ProcessVariable;
-            double output = GainProportional * (error + ProcessVariableRate*GainDerivative); // it add the derivative term becasue the zv is the other sign
+            StateIntegration += error;
+            StateIntegration = Clamp(StateIntegration, 10, -10);
+            double output = GainProportional * (error + ProcessVariableRate*GainDerivative) + GainIntegration * StateIntegration; // it add the derivative term becasue the zv is the other sign
             output = Clamp(output,OutputMax, OutputMin);
 
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
@@ -99,6 +103,9 @@ namespace HDCircles.Hackathon
         /// proportional term should contribute the bulk of the output change.
         /// </remarks>
         public double GainProportional { get; set; } = 0;
+
+        public double GainIntegration { get; set; } = 0.01;
+        private double StateIntegration = 0;
 
         /// <summary>
         /// The max output value the control device can accept.

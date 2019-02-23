@@ -73,6 +73,8 @@
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
                     <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="Auto" />
                 </Grid.RowDefinitions>
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto" />
@@ -95,6 +97,8 @@
                 
                 <TextBlock Grid.Row="5" Grid.Column="0" Text="Location Id" />
                 <TextBox Grid.Row="5" Grid.Column="1" x:Name="LocationIdBox" />
+
+                <ToggleButton Grid.Row="6" x:Name="IsLeftSide" Content="Is Left Side" />
             </Grid><!-- END OF Set Point Boxes -->
 
             <StackPanel Grid.Column="4">

@@ -44,16 +44,19 @@ namespace HDCircles.Hackathon.Services
 
         public float RelativeY { get; }
 
-        public string LocationId { get; }
+        public int PositionId { get; }
 
-        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY, string locationId)
+        public bool RightSide { get; }
+
+        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY, int positionId, bool rightSide)
         {
             Yaw = yaw;
             Altitude = altitude;
             RelativeX = relativeX;
             RelativeY = relativeY;
 
-            LocationId = locationId;
+            PositionId = positionId;
+            RightSide = rightSide;
         }
     }
 
@@ -111,7 +114,7 @@ namespace HDCircles.Hackathon.Services
             {
 
                 missionTaskObj = Task();
-                missionTaskObj.Start();
+                //missionTaskObj.Start();
             }
             catch (Exception ex)
             {
@@ -122,8 +125,6 @@ namespace HDCircles.Hackathon.Services
         public bool CheckIfCompleted()
         {
             Argument.IsNotNull(() => IsCompleted);
-            
-            Debug.WriteLine($"Checking mission {Id} {Type} is completed...");
 
             if (Result.HasValue)
                 return Result.Value;
@@ -132,8 +133,6 @@ namespace HDCircles.Hackathon.Services
 
             if (result)
             {
-                Debug.WriteLine($"Mission {Id} {Type} is completed...");
-
                 Result = result;
             }
 
@@ -214,17 +213,22 @@ namespace HDCircles.Hackathon.Services
             
             PositionController.Instance.YawSetpoint = args.Yaw;
             PositionController.Instance.AltitudeSetpoint = args.Altitude;
-            PositionController.Instance.RelativeXSetpoint = args.RelativeX;
-            PositionController.Instance.RelativeYSetpoint = args.RelativeY;
+            //PositionController.Instance.RelativeXSetpoint = args.RelativeX;
+            //PositionController.Instance.RelativeYSetpoint = args.RelativeY;
+
+            PositionController.Instance.TargetIndex = args.RelativeX;
+            PositionController.Instance.RightSide = true;
         }
 
         private bool IsCompleteExecute()
         {
             var currentState = Drone.Instance.CurrentState;
+            var currentIndex = PositionController.Instance.CurrentIndex;
             var yawError = Math.Abs(currentState.Yaw - Args.Yaw);
             var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
+            var posError = Math.Abs(currentIndex - Args.PositionId);
             
-            return yawError < 2f && altitudeError < 0.2f;
+            return yawError < 2f && altitudeError < 0.2f && posError <= 1;
         }
     }
 
@@ -482,14 +486,15 @@ namespace HDCircles.Hackathon.Services
             float altitudeSetpoint, 
             float relativeXSetpoint, 
             float relativeYSetpoint,
-            string locationId)
+            int posId,
+            bool isRightSide)
         {
             var id = GetNextId();
 
             var mission = new SetPointMission
             {
                 Id = id,
-                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, locationId)
+                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, posId, isRightSide)
             };
 
             AddMission(mission);

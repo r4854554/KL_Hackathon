@@ -21,15 +21,17 @@
             public float Altitude { get; }
             public float RelativeX { get; }
             public float RelativeY { get; }
-            public string LocationId { get; }
+            public int PositionId { get; }
+            public bool RightSide { get; }
 
-            public InputArgs(float yaw, float altitude, float relativeX, float relativeY, string locationId)
+            public InputArgs(float yaw, float altitude, float relativeX, float relativeY, int positionId, bool rightSide)
             {
                 Yaw = yaw;
                 Altitude = altitude;
                 RelativeX = relativeX;
                 RelativeY = relativeY;
-                LocationId = locationId;
+                PositionId = positionId;
+                RightSide = rightSide;
             }
         }
 
@@ -148,15 +150,32 @@
             var relativeXText = RelativeXSetpointBox.Text;
             var relativeYText = RelativeYSetpointBox.Text;
             var locationIdText = LocationIdBox.Text;
+            var isRightSide = !IsLeftSide.IsChecked;
 
             var yawValue = float.Parse(yawText);
             var altitudeValue = float.Parse(altitudeText);
             var relativeXValue = float.Parse(relativeXText);
             var relativeYValue = float.Parse(relativeYText);
+            var locationValue = int.Parse(locationIdText);
 
             // TODO: Check input bound.
 
-            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue, locationIdText);
+            if (yawValue < -180 || yawValue > 180)
+            {
+                yawValue = 35; // 0
+            }
+
+            if (altitudeValue > 1.7 || altitudeValue < 0.5)
+            {
+                altitudeValue = 1.2f;
+            }
+
+            if (relativeXValue < 1 || relativeXValue > 15)
+            {
+                relativeXValue = 13;
+            }
+
+            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue, locationValue, isRightSide ?? true);
             
             return args;
         }
@@ -265,7 +284,7 @@
 
                 var args = GetInputArgs();
 
-                Commander.AddSetPointMission(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY, args.LocationId);
+                Commander.AddSetPointMission(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY, args.PositionId, args.RightSide);
 
                 EnableInputs();
             }
@@ -280,14 +299,14 @@
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
 
-                Thread.Sleep(3000);
+                Thread.Sleep(3500);
 
-                Commander.Instance.AddSetPointMission(35, 1.7f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(35, 1.1f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(-145, 0.5f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(-145, 1.1f, 0, 0, "301");
-                Commander.Instance.AddSetPointMission(-145, 1.7f, 0, 0, "301");
+                //Commander.Instance.AddSetPointMission(35, 1.7f, 0, 0, 13);
+                //Commander.Instance.AddSetPointMission(35, 1.1f, 0, 0, 12);
+                //Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, 11);
+                //Commander.Instance.AddSetPointMission(-145, 0.5f, 0, 0, 11);
+                //Commander.Instance.AddSetPointMission(-145, 1.1f, 0, 0, 11);
+                //Commander.Instance.AddSetPointMission(-145, 1.7f, 0, 0, 10);
                 
                 EnableInputs();
             }
