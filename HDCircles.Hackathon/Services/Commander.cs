@@ -29,12 +29,16 @@ namespace HDCircles.Hackathon.Services
 
         public float RelativeY { get; }
 
-        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY)
+        public string LocationId { get; }
+
+        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY, string locationId)
         {
             Yaw = yaw;
             Altitude = altitude;
             RelativeX = relativeX;
             RelativeY = relativeY;
+
+            LocationId = locationId;
         }
     }
 
@@ -196,8 +200,6 @@ namespace HDCircles.Hackathon.Services
             PositionController.Instance.AltitudeSetpoint = args.Altitude;
             PositionController.Instance.RelativeXSetpoint = args.RelativeX;
             PositionController.Instance.RelativeYSetpoint = args.RelativeY;
-
-            Thread.Sleep(1000);
         }
 
         private bool IsCompleteExecute()
@@ -207,6 +209,25 @@ namespace HDCircles.Hackathon.Services
             var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
             
             return yawError < 2f && altitudeError < 0.2f;
+        }
+    }
+
+    public sealed class StockTakingMission: Mission
+    {
+        public StockTakingMission()
+        {
+            _task = TaskExecute;
+            Type = MissionType.StockTaking;
+        }
+
+        protected override Func<bool> IsCompleted => IsCompleteExecute;
+
+        private async Task TaskExecute()
+        { }
+
+        private bool IsCompleteExecute()
+        {
+            return true;
         }
     }
 
@@ -221,9 +242,9 @@ namespace HDCircles.Hackathon.Services
 
         private int nextId = 1;
 
-        public Queue<Mission> activeMissionStasks;
+        public Queue<Mission> activeMissions;
 
-        public Queue<Mission> suspendedMissionStasks;
+        public Queue<Mission> suspendedMissions;
 
         private HashSet<Mission> completedMissions;
 
@@ -251,8 +272,8 @@ namespace HDCircles.Hackathon.Services
 
         private Commander()
         {
-            activeMissionStasks = new Queue<Mission>();
-            suspendedMissionStasks = new Queue<Mission>();
+            activeMissions = new Queue<Mission>();
+            suspendedMissions = new Queue<Mission>();
             completedMissions = new HashSet<Mission>();
             workerThread = new Thread(Worker_DoWork);
 
@@ -285,7 +306,15 @@ namespace HDCircles.Hackathon.Services
                     continue;
                 }
 
-                ExecuteMission();
+                try
+                {
+                    ExecuteMission().Wait();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("Cmd Worker: " + ex.ToString());
+                    Debug.WriteLine("Cmd Worker: " + ex.ToString());
+                }
 
                 watch.Stop();
 
@@ -323,15 +352,14 @@ namespace HDCircles.Hackathon.Services
             // step 2. pop a new mission
 
             // no more mission, skip this cycle.
-            if (!activeMissionStasks.Any())
+            if (!activeMissions.Any())
             {
-                Debug.WriteLine("empty mission stack...");
                 return;
             }
 
             lock (stackLock)
             {
-                mission = activeMissionStasks.Dequeue();
+                mission = activeMissions.Dequeue();
                 currentMission = mission;
             }
 
@@ -364,13 +392,13 @@ namespace HDCircles.Hackathon.Services
 
             lock (stackLock)
             {
-                if (activeMissionStasks.Any(x => x.Equals(mission)))
+                if (activeMissions.Any(x => x.Equals(mission)))
                 {
                     // drop the mission if duplicated
                     return;
                 }
 
-                activeMissionStasks.Enqueue(mission);
+                activeMissions.Enqueue(mission);
             }
         }
 
@@ -398,14 +426,19 @@ namespace HDCircles.Hackathon.Services
             AddMission(mission);
         }
 
-        public void AddSetPointMission(float yawSetpoint, float altitudeSetpoint, float relativeXSetpoint, float relativeYSetpoint)
+        public void AddSetPointMission(
+            float yawSetpoint, 
+            float altitudeSetpoint, 
+            float relativeXSetpoint, 
+            float relativeYSetpoint,
+            string locationId)
         {
             var id = GetNextId();
 
             var mission = new SetPointMission
             {
                 Id = id,
-                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint)
+                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, locationId)
             };
 
             AddMission(mission);

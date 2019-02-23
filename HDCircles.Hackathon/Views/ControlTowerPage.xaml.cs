@@ -13,13 +13,15 @@
             public float Altitude { get; }
             public float RelativeX { get; }
             public float RelativeY { get; }
+            public string LocationId { get; }
 
-            public InputArgs(float yaw, float altitude, float relativeX, float relativeY)
+            public InputArgs(float yaw, float altitude, float relativeX, float relativeY, string locationId)
             {
                 Yaw = yaw;
                 Altitude = altitude;
                 RelativeX = relativeX;
                 RelativeY = relativeY;
+                LocationId = locationId;
             }
         }
 
@@ -62,6 +64,7 @@
             var altitudeText = AltitudeSetpointBox.Text;
             var relativeXText = RelativeXSetpointBox.Text;
             var relativeYText = RelativeYSetpointBox.Text;
+            var locationIdText = LocationIdBox.Text;
 
             var yawValue = float.Parse(yawText);
             var altitudeValue = float.Parse(altitudeText);
@@ -70,7 +73,7 @@
 
             // TODO: Check input bound.
 
-            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue);
+            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue, locationIdText);
             
             return args;
         }
@@ -179,7 +182,7 @@
 
                 var args = GetInputArgs();
 
-                Commander.AddSetPointMission(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY);
+                Commander.AddSetPointMission(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY, args.LocationId);
 
                 EnableInputs();
             }
@@ -193,9 +196,9 @@
 
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
-                Commander.Instance.AddSetPointMission(0, 1.8f, 0, 0);
-                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0);
-                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0);
+                Commander.Instance.AddSetPointMission(0, 1.8f, 0, 0, "315");
+                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0, "314");
+                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0, "313");
                 //Commander.Instance.AddSetPointMission(60, 1.2f, 0, 0);
                 //Commander.Instance.AddSetPointMission(60, 0.5f, 0, 0);
                 //Commander.Instance.AddLandingMission();

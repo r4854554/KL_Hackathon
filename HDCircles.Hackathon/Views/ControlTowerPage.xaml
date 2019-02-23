@@ -91,6 +91,9 @@
 
                 <TextBlock Grid.Row="4" Grid.Column="0" Text="RelativeY" />
                 <TextBox Grid.Row="4" Grid.Column="1" x:Name="RelativeYSetpointBox" />
+                
+                <TextBlock Grid.Row="5" Grid.Column="0" Text="Location Id" />
+                <TextBox Grid.Row="5" Grid.Column="1" x:Name="LocationIdBox" />
             </Grid><!-- END OF Set Point Boxes -->
 
             <StackPanel Grid.Column="4">
