@@ -697,15 +697,17 @@
                 case VirtualKey.Down:
                     Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetAltitudeStepCommand(-0.05);
-                    FlightStacks.Instance._positionController.AltitudeSetpoint = 1.0;
+                    FlightStacks.Instance._positionController.AltitudeSetpoint = 0.4;
                     break;
                 case VirtualKey.PageDown:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
-                    FlightStacks.Instance._positionController.SetYawStepCommand(0.5);
+                    //FlightStacks.Instance._positionController.SetYawStepCommand(0.5);
+                    FlightStacks.Instance._positionController.YawSetpoint = 10;
                     break;
                 case VirtualKey.PageUp:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
-                    FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
+                    //FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
+                    FlightStacks.Instance._positionController.YawSetpoint = -170;
                     break;
             }
 

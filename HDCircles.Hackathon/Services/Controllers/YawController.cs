@@ -54,12 +54,12 @@ namespace HDCircles.Hackathon
                 error -= 360;
             else if (error < -180)
                 error += 360;
-            double errorToIntegration = Clamp(error, 5f, -5f);
+            double errorToIntegration = Clamp(error, 10f, -10f);
 
             this.StateIntegration += errorToIntegration;
             this.StateIntegration = Clamp(this.StateIntegration, 60, -60);
 
-            double output = GainProportional * error + GainIntegration * this.StateIntegration; // it add the derivative term becasue the zv is the other sign
+            double output = GainProportional * errorToIntegration + GainIntegration * this.StateIntegration; // it add the derivative term becasue the zv is the other sign
             output = Clamp(output,OutputMax, OutputMin);
 
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
