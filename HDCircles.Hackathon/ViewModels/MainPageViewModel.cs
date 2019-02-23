@@ -89,8 +89,8 @@
             {
                 lock (indexLock)
                 {
-                    if (value != 0.0) { _averrageQrIndex = value; }
-                    
+                    //if (value != 0.0) { _averrageQrIndex = value; }
+                    _averrageQrIndex = value;
                 }
             }
         }
@@ -1076,7 +1076,7 @@
                 case VirtualKey.PageUp:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
-                    FlightStacks.Instance._positionController.TargetIndex = 14; // FlightStacks.Instance._positionController.TargetIndex + 1;
+                    FlightStacks.Instance._positionController.TargetIndex = 0; // FlightStacks.Instance._positionController.TargetIndex + 1;
                     break;
             }
 

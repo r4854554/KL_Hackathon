@@ -39,7 +39,7 @@ namespace HDCircles.Hackathon
                 return 0;
             }
 
-            if (counter < 5)
+            if (counter < 10)
             {
                 if (error < -0.5)
                     output = -StepCmd;
@@ -57,7 +57,7 @@ namespace HDCircles.Hackathon
                 output = -output;
 
             counter++;
-            if (counter >= 10)
+            if (counter >= 15)
                 counter = 0;
 
             Debug.WriteLine($"Info:Lateral: Target: {TargetIndex},  Current: {CurrentIndex}, Output: { output}");
@@ -66,7 +66,7 @@ namespace HDCircles.Hackathon
 
         public double CurrentIndex { get; set; } = 0;
         public double TargetIndex { get; set; } = 0;
-        public double StepCmd { get; set; } = 0.1;
+        public double StepCmd { get; set; } = 0.5;
 
         private int counter = 0;
     }
