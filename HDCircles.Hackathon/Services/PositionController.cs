@@ -11,6 +11,9 @@ namespace HDCircles.Hackathon
         YawController yawController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
+        private const double Gain_p_yaw = 0.01;
+        private const double Gain_i_yaw = 0.001;
+        private const double Gain_d_yaw = 0;
 
         // the output of position controller - control to the drone
         //private double throttleCmd = 0.0;
@@ -100,7 +103,7 @@ namespace HDCircles.Hackathon
 
             altitudeController = new AltitudeController(Gain_p_alt, Gain_d_alt);
 
-            yawController = new YawController(Gain_p_alt, Gain_d_alt);
+            yawController = new YawController(Gain_p_yaw, Gain_i_yaw, Gain_d_yaw);
         }
 
         public void Reset()
