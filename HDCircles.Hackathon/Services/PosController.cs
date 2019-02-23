@@ -140,7 +140,7 @@ namespace HDCircles.Hackathon
                     PoseEstimate(liveFrame, det).Wait();
                 }
 
-                Debug.WriteLine($"yaw: {PoseEstimation.Yaw}, tz: {PoseEstimation.Tz}");
+                //Debug.WriteLine($"yaw: {PoseEstimation.Yaw}, tz: {PoseEstimation.Tz}");
 
                 watch.Stop();
                 elapsed = watch.ElapsedMilliseconds;

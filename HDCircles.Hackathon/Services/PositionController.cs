@@ -11,8 +11,8 @@ namespace HDCircles.Hackathon
         YawController yawController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
-        private const double Gain_p_yaw = 0.01;
-        private const double Gain_i_yaw = 0.001;
+        private const double Gain_p_yaw = 0.075;
+        private const double Gain_i_yaw = 0.0001;
         private const double Gain_d_yaw = 0;
 
         // the output of position controller - control to the drone
@@ -73,7 +73,7 @@ namespace HDCircles.Hackathon
         public double YawSetpoint {
             get => yawSetpoint;
             set {
-                Debug.Print($"Info:YawSetpoint changed: {value}");
+                //Debug.Print($"Info:YawSetpoint changed: {value}");
                 
                 yawSetpoint = value;
                 yawController.SetPoint = yawSetpoint;
@@ -136,6 +136,7 @@ namespace HDCircles.Hackathon
             //double defaultTakeoffAltitude = 1.2;
             //altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
             yawController.Start(yaw, yaw, 0.0);
+            YawSetpoint = yaw;
 
         }
 
@@ -147,7 +148,7 @@ namespace HDCircles.Hackathon
 
         public void SetYawStepCommand(double step)
         {
-            Debug.Print($"Info:SetYawStepCommand: {step}");
+            //Debug.Print($"Info:SetYawStepCommand: {step}");
             YawSetpoint = YawSetpoint + step; 
         }
 

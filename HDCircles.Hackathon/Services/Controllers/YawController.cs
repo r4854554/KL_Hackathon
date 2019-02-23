@@ -50,9 +50,9 @@ namespace HDCircles.Hackathon
             
             // work out the control
             double error = SetPoint - ProcessVariable;
-            if (error > 360)
+            if (error > 180)
                 error -= 360;
-            else if (error < -360)
+            else if (error < -180)
                 error += 360;
             double errorToIntegration = Clamp(error, 5f, -5f);
 
@@ -65,7 +65,7 @@ namespace HDCircles.Hackathon
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
             UdpDebug.Instance.SendUdpDebug(udpData);
 
-            Debug.WriteLine($"Info:YawController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable}, ProcessVarRate: {ProcessVariableRate}, Output: { output}");
+            Debug.WriteLine($"Info:YawController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable} , Output: {output}");
             return output;
         }
 
@@ -147,7 +147,19 @@ namespace HDCircles.Hackathon
             get => _setPoint;
             set {
 
-                _setPoint = Clamp(value, SetPointMax, SetPointMin);
+                _setPoint = value;
+
+                while(_setPoint > 180)
+                {
+                    _setPoint -= 360;
+                }
+
+                while(_setPoint < -180)
+                {
+                    _setPoint += 360;
+                }
+
+                //_setPoint = Clamp(value, SetPointMax, SetPointMin);
              
             }
         }
