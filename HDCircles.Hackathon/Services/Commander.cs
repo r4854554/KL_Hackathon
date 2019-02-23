@@ -185,7 +185,7 @@ namespace HDCircles.Hackathon.Services
 
         private bool IsCompletedExecute()
         {
-            return Drone.Instance.IsLanding;
+            return true;
         }
     }
 
@@ -203,9 +203,8 @@ namespace HDCircles.Hackathon.Services
         private async Task TaskExecute()
         {
             var args = Args;
-
-            //PositionController.Instance.YawSetpoint = args.Yaw;
-            FlightStacks.Instance._positionController.YawSetpoint = args.Yaw;
+            
+            PositionController.Instance.YawSetpoint = args.Yaw;
             PositionController.Instance.AltitudeSetpoint = args.Altitude;
             PositionController.Instance.RelativeXSetpoint = args.RelativeX;
             PositionController.Instance.RelativeYSetpoint = args.RelativeY;
@@ -373,13 +372,13 @@ namespace HDCircles.Hackathon.Services
             lock (stackLock)
             {
                 // no more mission, skip this cycle.
-                if (!activeMissionStasks.Any())
+                if (!activeMissions.Any())
                 {
                     Logger.Instance.Log("empty mission stack...");
                     return;
                 }
 
-                mission = activeMissionStasks.Dequeue();
+                mission = activeMissions.Dequeue();
                 currentMission = mission;
             }
 

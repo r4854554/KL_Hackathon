@@ -1,9 +1,15 @@
 ﻿namespace HDCircles.Hackathon.Views
 {
+    using DJI.WindowsSDK;
     using HDCircles.Hackathon.Services;
+    using OpenCvSharp;
     using System;
+    using System.Runtime.InteropServices;
+    using System.Runtime.InteropServices.WindowsRuntime;
+    using Windows.UI.Core;
     using Windows.UI.Xaml;
     using Windows.UI.Xaml.Controls;
+    using Windows.UI.Xaml.Media.Imaging;
 
     public sealed partial class ControlTowerPage : Page
     {
@@ -29,17 +35,74 @@
 
         private object _cmdLock = new object();
 
+        private object _frameLock = new object();
+
         private bool _isLanding;
         
         private bool _isTakingOff;
 
         private bool _isAutoPilot;
 
+        private WriteableBitmap LiveFeedSource { get; set; }
+
         private Commander Commander => Commander.Instance;
 
         public ControlTowerPage()
         {
             this.InitializeComponent();
+
+            Loaded += ControlTowerPage_Loaded;
+            Unloaded += ControlTowerPage_Unloaded;
+        }
+
+        private void ControlTowerPage_Unloaded(object sender, RoutedEventArgs e)
+        {
+
+        }
+
+        private void ControlTowerPage_Loaded(object sender, RoutedEventArgs e)
+        {
+            DJISDKManager.Instance.SDKRegistrationStateChanged += Instance_SDKRegistrationStateChanged;
+        }
+
+        private void Instance_SDKRegistrationStateChanged(SDKRegistrationState state, SDKError errorCode)
+        {
+            var isRegistered = state == SDKRegistrationState.Succeeded && errorCode == SDKError.NO_ERROR;
+
+            if (isRegistered)
+            {
+                PosController.Instance.PoseUpdated += Instance_PoseUpdated;
+            }
+        }
+
+        private async void Instance_PoseUpdated(ApriltagPoseEstimation pose)
+        {
+            await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
+            {
+                lock (_frameLock)
+                {
+                    var frame = pose.Frame;
+                    var bgraData = new byte[frame.Data.Length];
+
+                    var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);
+                    var bgraMat = new Mat();
+
+                    Cv2.CvtColor(srcMat, bgraMat, ColorConversionCodes.RGBA2BGRA);
+
+                    Marshal.Copy(bgraMat.Data, bgraData, 0, frame.Data.Length);
+
+                    if (LiveFeedSource == null || LiveFeedSource.PixelWidth != frame.Width || LiveFeedSource.PixelHeight != frame.Height)
+                    {
+                        LiveFeedSource = new WriteableBitmap(frame.Width, frame.Height);
+                        LiveFeedImage.Source = LiveFeedSource;
+                    }
+
+                    bgraData.AsBuffer().CopyTo(LiveFeedSource.PixelBuffer);
+
+                    LiveFeedSource.Invalidate();
+                    //PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
+                }
+            });
         }
 
         private void DisableControls(bool isEmergency)
@@ -197,17 +260,12 @@
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
 
-                Commander.Instance.AddSetPointMission(0, 1.7f, 0, 0);
-                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0);
-                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0);
-                Commander.Instance.AddSetPointMission(180, 0.5f, 0, 0);
-                Commander.Instance.AddSetPointMission(180, 1.1f, 0, 0);
-                Commander.Instance.AddSetPointMission(180, 1.7f, 0, 0);
-                //Commander.Instance.AddSetPointMission(30, 1.8f, 0, 0);
-                //Commander.Instance.AddSetPointMission(120, 1.0f, 0, 0);
-                //Commander.Instance.AddSetPointMission(60, 1.2f, 0, 0);
-                //Commander.Instance.AddSetPointMission(90, 0.5f, 0, 0);
-                //Commander.Instance.AddLandingMission();
+                Commander.Instance.AddSetPointMission(0, 1.7f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(180, 0.5f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(180, 1.1f, 0, 0, "301");
+                Commander.Instance.AddSetPointMission(180, 1.7f, 0, 0, "301");
                 
 
                 EnableInputs();

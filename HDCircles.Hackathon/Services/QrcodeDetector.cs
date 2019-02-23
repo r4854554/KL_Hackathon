@@ -84,7 +84,7 @@
             {
                 watch.Restart();
 
-                ScanFrame().Wait();
+                //ScanFrame().Wait();
 
                 watch.Stop();
 
@@ -311,7 +311,7 @@
             {
                 List<String> labels = new List<String> { "Box", "Nobox" };
                 objectDetection = new ObjectDetection(labels, 10, 0.45F, 0.45F);
-                await init_onnx();
+                //await init_onnx();
                 var gimbal = await DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).GetGimbalAttitudeAsync();
                 if (gimbal.value == null || gimbal.value.Value.pitch == 0)
                 {
