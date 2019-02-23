@@ -126,16 +126,16 @@ namespace HDCircles.Hackathon
         {
           // Get feedback
           // Update altitude controller
-            ThrottleCmd = altitudeController.Update(altitude, vz);
+          // ThrottleCmd = altitudeController.Update(altitude, vz);
             double falseRate = 0.0; 
             YawCmd = yawController.Update(yaw, falseRate);
             
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
-            double defaultTakeoffAltitude = 1.2;
-            altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
-            yawController.Start(0.0, 0.0, 0.0);
+            //double defaultTakeoffAltitude = 1.2;
+            //altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
+            yawController.Start(yaw, yaw, 0.0);
 
         }
 
@@ -143,6 +143,12 @@ namespace HDCircles.Hackathon
         {
             Debug.Print($"Info:SetAltitudeStepCommand: {step}");
             AltitudeSetpoint = AltitudeSetpoint + step;
+        }
+
+        public void SetYawStepCommand(double step)
+        {
+            Debug.Print($"Info:SetYawStepCommand: {step}");
+            YawSetpoint = YawSetpoint + step; 
         }
 
     }
