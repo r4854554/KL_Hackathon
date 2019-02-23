@@ -10,16 +10,16 @@ namespace HDCircles.Hackathon
         private const double Gain_d_alt = 0.8;
         // the output of position controller - control to the drone
         private double throttleCmd = 0.0;
-        public double ThrottleCmd { get; set; }
+        public double ThrottleCmd { get;  }
 
         private double rollCmd = 0.0;
-        public double RollCmd { get; set; }
+        public double RollCmd { get;  }
 
         private double pitchCmd = 0.0;
-        public double PitchCmd { get; set; }
+        public double PitchCmd { get;  }
 
         private double yawCmd = 0.0;
-        public double YawCmd { get; set; }
+        public double YawCmd { get;  }
 
         // Controller setpoints
         private double altitudeSetpoint;  
@@ -97,9 +97,7 @@ namespace HDCircles.Hackathon
         public void Update(double roll, double pitch, double yaw, double altitude, double vx, double vy, double vz)
         {
             // update altitude controller
-
-
-
+            
             throttleCmd = altitudeController.Update(altitude, vz);
             
 

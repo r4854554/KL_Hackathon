@@ -48,7 +48,7 @@
         private ObjectDetection objectDetection;
 
         private BarcodeReader br;
-        private Regex LocationTagReg = new Regex(@"^ [A-Z] [0-9]{2} [0-9]{2} [0-9] [0-9]{2}$");
+        private Regex LocationTagReg = new Regex(@"^L[A-Z][0-9]{6}$");
         private Regex CartonTagReg = new Regex(@"^[0-9]{6}$");
         public List<string> ResultLocation = new List<string>();
         public List<List<string>> ResultCarton = new List<List<string>>();
@@ -98,7 +98,8 @@
         private async Task<int> ScanFrame()
         {
             var frame = Drone.Instance.GetLiveFrame();
-            
+            string resultText = "";
+            int returncode = 0;
             if (frame.Width == 0 || frame.Height == 0 || frame.Data == null || frame.Data.Length == 0)
                 return -1;
 
@@ -127,23 +128,27 @@
                 foreach (var output in outputlist)
                 {
                     //chop origin image
-                    //Mat chop = ChopOutData(gray, output.BoundingBox, height, width);
-                    //var chop_image_length = chop.Rows * chop.Cols * chop.ElemSize();
-                    //var chop_image_buffer = new byte[chop_image_length];
-                    //Marshal.Copy(chop.Data, chop_image_buffer, 0, chop_image_length);
+                    Mat chop = ChopOutData(gray, output.BoundingBox, height, width);
+                    //Cv2.ImShow("hello", chop);
+                    //Cv2.ImShow("Origin", gray);
+                    //Cv2.WaitKey(500);
 
-                    var gray_length = gray.Rows * gray.Cols * gray.ElemSize();
-                    var gray_buffer = new byte[gray_length];
-                    Marshal.Copy(gray.Data, gray_buffer, 0, gray_length);
+                    var chop_image_length = chop.Rows * chop.Cols * chop.ElemSize();
+                    var chop_image_buffer = new byte[chop_image_length];
+                    Marshal.Copy(chop.Data, chop_image_buffer, 0, chop_image_length);
 
-                    br = new BarcodeReader();
-                    br.LicenseKeys = DynamsoftAppKey;
-                    TextResult[] result =
-                        br.DecodeBuffer(gray_buffer, gray.Cols, gray.Rows, gray.Cols * gray.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
+                    //var gray_length = gray.Rows * gray.Cols * gray.ElemSize();
+                    //var gray_buffer = new byte[gray_length];
+                    //Marshal.Copy(gray.Data, gray_buffer, 0, gray_length);
+
+                    var reader = new BarcodeReader();
+                    reader.LicenseKeys = DynamsoftAppKey;
+                    //TextResult[] result =
+                    //    br.DecodeBuffer(gray_buffer, gray.Cols, gray.Rows, gray.Cols * gray.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
 
                     //chop 
-                    //TextResult[] result =
-                    //      br.DecodeBuffer(chop_image_buffer, chop.Cols, chop.Rows, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
+                    TextResult[] result =
+                          reader.DecodeBuffer(chop_image_buffer, chop.Cols, chop.Rows, chop.Cols * chop.ElemSize(), EnumImagePixelFormat.IPF_GrayScaled, "");
 
                     int index = 0;
                     switch (output.TagName)
@@ -151,7 +156,10 @@
 
                         case "Box":
                             if (result.Length < 2)
-                                return -1;
+                            {
+                                returncode = -1;
+                                break;
+                            }
                             string LocationTag = "";
                             List<string> CartonTag = new List<string>();
                             foreach (var pick in result)
@@ -166,7 +174,10 @@
                                 }
                             }
                             if (LocationTag == "" || CartonTag.Count < 1)
-                                return -2;
+                            {
+                                returncode = -2;
+                                break;
+                            }
                             index = ResultLocation.IndexOf(LocationTag);
                             if (index == -1)
                             {
@@ -180,7 +191,10 @@
                             break;
                         case "Nobox":
                             if (result.Length < 1 || !LocationTagReg.Match(result[0].BarcodeText).Success)
-                                return -2;
+                            {
+                                returncode = -2;
+                                break;
+                            }
 
                             int i_dx = ResultLocation.IndexOf(result[0].BarcodeText);
                             if (i_dx == -1)
@@ -195,58 +209,42 @@
                             break;
                     }
                     //UpdateDecodeText();
-
-                    lock (updateLock)
+                    //lock (updateLock)
+                }
+                lock (updateLock)
+                {
+                    int index = ResultLocation.Count;
+                    for (int i = 0; i < index; i++)
                     {
-                        string resultText = "";
-                        index = ResultLocation.Count;
-                        for (int i = 0; i < index; i++)
+                        resultText += ResultLocation[i];
+                        foreach (string carton in ResultCarton[i])
                         {
-                            resultText += ResultLocation[i] + " -> ";
-                            foreach (string carton in ResultCarton[i])
-                            {
-                                resultText += carton + " ";
-                            }
-                            resultText += "\n";
+                            resultText += "," + carton;
                         }
-
-                        var qrcode = new QrcodeDetection(resultText, frame);
-
-                        if (null != QrcodeDetected)
-                        {
-                            QrcodeDetected.Invoke(qrcode);
-                        }
+                        resultText += "\n";
                     }
+                    var qrcode = new QrcodeDetection(resultText, frame);
 
-                    
+                    if (null != QrcodeDetected)
+                    {
+                        QrcodeDetected.Invoke(qrcode);
+                    }
                 }
             }
             catch (Exception ex)
             {
-                //lock (updateLock)
-                //{
-                //    string resultText = "";
-                //    int index = ResultLocation.Count;
-                //    for (int i = 0; i < index; i++)
-                //    {
-                //        resultText += ResultLocation[i] + " -> ";
-                //        foreach (string carton in ResultCarton[i])
-                //        {
-                //            resultText += carton + " ";
-                //        }
-                //        resultText += "\n";
-                //    }
+                lock (updateLock)
+                {
+                    var qrcode = new QrcodeDetection(ex.Message, frame);
 
-                //    var qrcode = new QrcodeDetection(resultText, frame);
-
-                //    if (null != QrcodeDetected)
-                //    {
-                //        QrcodeDetected.Invoke(qrcode);
-                //    }
-                //}
+                    if (null != QrcodeDetected)
+                    {
+                        QrcodeDetected.Invoke(qrcode);
+                    }
+                }
                 return -1;
             }
-            return 0;
+            return returncode;
         }
         
         private Mat ChopOutData(Mat image, BoundingBox box, int height, int width)
@@ -295,9 +293,9 @@
 
                 if (null != QrcodeDetected)
                 {
-                    //var qrcode = new QrcodeDetection(results, frame);
+                    var qrcode = new QrcodeDetection(null, frame);
 
-                    //QrcodeDetected.Invoke(qrcode);
+                    QrcodeDetected.Invoke(qrcode);
                 }
             }
         }
@@ -312,10 +310,25 @@
             if (isReg)
             {
                 List<String> labels = new List<String> { "Box", "Nobox" };
-                objectDetection = new ObjectDetection(labels, 10, 0.75F, 0.45F);
+                objectDetection = new ObjectDetection(labels, 10, 0.45F, 0.45F);
                 await init_onnx();
+                var gimbal = await DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).GetGimbalAttitudeAsync();
+                if (gimbal.value == null || gimbal.value.Value.pitch == 0)
+                {
+                    var err0r1 = DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).RotateByAngleAsync(new GimbalAngleRotation
+                    {
+                        mode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
+                        pitch = -16.9,
+                        roll = 0,
+                        yaw = 0,
+                        pitchIgnored = false,
+                        rollIgnored = true,
+                        yawIgnored = true,
+                        duration = 1.0
+                    });
+                }
                 _isRunning = true;
-
+                    
                 Thread.Sleep(2000);
                 workerThread.Start();
             }
