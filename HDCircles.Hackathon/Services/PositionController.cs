@@ -146,10 +146,7 @@ namespace HDCircles.Hackathon
         }
         public void Init()
         {
-           
-
             altitudeController = new AltitudeController(Gain_p_alt, Gain_d_alt);
-
             yawController = new YawController(Gain_p_yaw, Gain_i_yaw, Gain_d_yaw);
         }
 
@@ -174,8 +171,8 @@ namespace HDCircles.Hackathon
           // Get feedback
           // Update altitude controller
             ThrottleCmd = altitudeController.Update(altitude, vz);
-            double falseRate = 0.0; 
-            YawCmd = yawController.Update(yaw, falseRate);
+            double falseRate = 0.0;
+            YawCmd = 0;//yawController.Update(yaw, falseRate);
             
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)

@@ -478,9 +478,7 @@ namespace HDCircles.Hackathon.Services
                         result = await fcHandler.StartTakeoffAsync();
                     }
                     Debug.Print("Take off finish")
-;                    Drone.Instance.IsTakeOffFinish = true;
-                    
-
+;                   Drone.Instance.IsTakeOffFinish = true;
                 } else
                 {
                     // start take off fail
