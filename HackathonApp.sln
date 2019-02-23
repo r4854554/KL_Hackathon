@@ -9,6 +9,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PidController", "pid-contro
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DJIVideoParser", "DJIVideoParser\DJIVideoParser.vcxproj", "{5F8B4A30-B8D1-46B5-BE32-AEE3C899E3BF}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AprilTagsSharp", "AprilTagsSharp\AprilTagsSharp.csproj", "{0E008970-910E-4DA6-926B-6418138ECEB5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -85,6 +87,26 @@ Global
 		{5F8B4A30-B8D1-46B5-BE32-AEE3C899E3BF}.Release|x64.Build.0 = Release|x64
 		{5F8B4A30-B8D1-46B5-BE32-AEE3C899E3BF}.Release|x86.ActiveCfg = Release|Win32
 		{5F8B4A30-B8D1-46B5-BE32-AEE3C899E3BF}.Release|x86.Build.0 = Release|Win32
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|ARM.ActiveCfg = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|ARM.Build.0 = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|ARM64.ActiveCfg = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|ARM64.Build.0 = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|x64.Build.0 = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Debug|x86.Build.0 = Debug|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|ARM.ActiveCfg = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|ARM.Build.0 = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|ARM64.ActiveCfg = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|ARM64.Build.0 = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|x64.ActiveCfg = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|x64.Build.0 = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|x86.ActiveCfg = Release|Any CPU
+		{0E008970-910E-4DA6-926B-6418138ECEB5}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

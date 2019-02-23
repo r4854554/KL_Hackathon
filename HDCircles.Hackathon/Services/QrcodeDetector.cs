@@ -11,6 +11,7 @@
     using CustomVision;
     using DJI.WindowsSDK;
     using Dynamsoft.Barcode;
+    using HDCircles.Hackathon.util;
     using OpenCvSharp;
     using Windows.Graphics.Imaging;
     using Windows.Media;
@@ -291,6 +292,14 @@
 
                     br.LicenseKeys = DynamsoftAppKey;
                     results = br.DecodeBuffer(data, frame.Width, frame.Height, stride, EnumImagePixelFormat.IPF_GrayScaled, "");
+                    #region by chriss. for debugging and tracing the current qrcode coordination
+                    var h = new Heuristic();
+                    if (results.Length >= 3)
+                    {
+                        h.LRHeuristic(results[0].BarcodeText, results[1].BarcodeText, results[2].BarcodeText);
+                    }
+                    #endregion
+
                 }
 
                 if (null != QrcodeDetected)
