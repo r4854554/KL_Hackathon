@@ -1,16 +1,12 @@
-﻿
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-//using System.Threading;
 using System.Threading.Tasks;
 using Windows.UI.Core;
 
 using System.ComponentModel;
 using System.Threading;
-using DJI.WindowsSDK;
 using System.Net.Sockets;
 using System.Net;
 
@@ -18,50 +14,60 @@ namespace HDCircles.Hackathon.Services
 {
     public class FlightStacks
     {
-        public struct UdpState
+        /// <summary>
+        /// Typical way to create the static class instacne, so all other class can access this unique object instance
+        /// </summary>
+
+        private static FlightStacks _instance;
+        public static FlightStacks Instance
         {
-            public UdpClient u;
-            public IPEndPoint e;
+            get
+            {
+                if (null == _instance)
+                    _instance = new FlightStacks();
+
+                return _instance;
+            }
         }
 
+        // Flgiht stacts inclues below components
         public Drone _drone;
         public PositionController _positionController;
 
+        // constant parameter
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
+        private long updateInterval = 100L;                     // milliseconds
+        private double ControlValueDeadzone = 0.05;     // any control less this value will be ignored
 
-        private long updateInterval = 100L; // milliseconds
+        // flags
         private bool _isInitialised = false;
-
+        private bool _isMissionDone = false;
         private bool _isStarted = false;
-        IPEndPoint RemoteIpEndPoint;
-        // Port number
-        private const int _statePort = 11000;
-        //Creates a UdpClient for reading incoming data.
-        //private IPEndPoint receivingEndPoint = new IPEndPoint(IPAddress.Any, 0);
-        
-        //UdpClient receivingUdpClient = new UdpClient(12000);
-        UdpClient sendingUdpClient = new UdpClient("127.0.0.1", _statePort);
 
-        public static CoreDispatcher Dispatcher { get; set; }
 
+        // background worker
         private BackgroundWorker backgroundWorker;
 
-        public FlightStacks()    
+        private FlightStacks()
         {
-            RemoteIpEndPoint = new IPEndPoint(IPAddress.Parse("192.168.31.65"), 15000);
-
             Debug.WriteLine("Info:DroneController: constructor");
 
             if (!_isInitialised)
             {
+                Init();
+                _isInitialised = true;
+            }
+
+        }
+        private void Init()
+        {
+            if (!_isInitialised)
+            {
                 Debug.WriteLine("Info:DroneController: initialised");
 
-                // initialise drone instance
+                // initialise flight stacks components
                 _drone = Drone.Instance;
-
-                // init position controller
-                _positionController = new PositionController();
-                _positionController.Init();
+                _positionController = PositionController.Instance;
 
                 // add a background worker to perform regular tick
                 backgroundWorker = new BackgroundWorker();
@@ -70,11 +76,12 @@ namespace HDCircles.Hackathon.Services
 
                 _isInitialised = true;
             }
-
         }
+
 
         private void Start()
         {
+            // only start when it is flying
             _positionController.Start(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
                 _drone.CurrentState.Altitude, _drone.CurrentState.Vx, _drone.CurrentState.Vy, _drone.CurrentState.Vz);
 
@@ -84,18 +91,11 @@ namespace HDCircles.Hackathon.Services
 
         private void BackgroundWorker_Timing(object sender, DoWorkEventArgs e)
         {
+            // Maintain the timing to makse sure a 10 Hz cycle for the flight stack
             var watch = Stopwatch.StartNew();
 
             var elapsed = 0L;
             var sleepTime = 0;
-
-            //var receiveState = new UdpState();
-
-            //receiveState.u = receivingUdpClient;
-            //receiveState.e = receivingEndPoint;
-
-            //receivingUdpClient.Connect(receivingEndPoint);
-            //receivingUdpClient.BeginReceive(ProcessReceive, receiveState);
 
             for (; ; )
             {
@@ -117,119 +117,113 @@ namespace HDCircles.Hackathon.Services
                     // reset?
                 }
 
-                ControlLoop().Wait();
+                ControlLoop((double)updateInterval).Wait();
 
                 watch.Stop();
 
                 elapsed = watch.ElapsedMilliseconds;
                 sleepTime = (int)Math.Max(updateInterval - elapsed, 0L);
 
-                //Debug.WriteLine($"Background thread id: {Thread.CurrentThread.ManagedThreadId}");
-                //Debug.WriteLine("elapsed: " + watch.Elapsed.TotalMilliseconds);
-
                 Thread.Sleep(sleepTime);
             }
         }
 
-        private async Task ControlLoop()
+        private async Task ControlLoop(double updateIntervalInSeconds)
         {
             //Debug.WriteLine($"Info:ControlLoop:Collect Data thread id: {Thread.CurrentThread.ManagedThreadId}");
-            
+
             // Safetyguad to prevent drone go crazy 
-            if (_drone.CurrentState.Altitude>2.5)
+            if (_drone.CurrentState.Altitude > 2)
             {
                 Debug.Print("Info:Emergency");
 
                 _drone.EmergencyLanding();
             }
 
-            // check start condition
-            if (_drone._isSdkRegistered)
+            // Need to deicid when to start controllercheck start condition
+            if (_drone._isSdkRegistered && !_isStarted && _drone.CurrentState.Altitude>1.19)
             {
                 Start();
-            }
-            
-            // get setpoint
-            
+                _isStarted = true;
 
-            // only update afte start the whole controller
-            if (_isStarted)
+            }
+
+            // Setpoint: set point is 
+
+            //if (!_isMissionDone && _drone._isSdkRegistered)
+            //{
+            //    var watch = Stopwatch.StartNew();
+
+            //    var elapsed = 0L;
+            //    var sleepTime = 0;
+
+            //    watch.Reset();
+            //    watch.Start();
+
+
+            //    elapsed = watch.ElapsedMilliseconds;
+
+            //    watch.Stop();
+
+            //}
+
+
+            // Update: only update afte start and the drone is flying, and the drone is not landing
+            //      Update the current process variable 
+            //      Update the crrent time
+            //      Update the control variable  
+            if (_isStarted && _drone.CurrentState.IsFlying && !_drone.IsLanding && _drone.IsTakeOffFinish)
             {
+
                 // update postion controller
-                _positionController.Update(_drone.CurrentState.Roll, _drone.CurrentState.Pitch, _drone.CurrentState.Yaw,
-                    _drone.CurrentState.Altitude, _drone.CurrentState.Vx, _drone.CurrentState.Vy, _drone.CurrentState.Vz);
+                _positionController.Update(updateIntervalInSeconds,
+                    _drone.CurrentState.Roll,
+                    _drone.CurrentState.Pitch,
+                    _drone.CurrentState.Yaw,
+                    _drone.CurrentState.Altitude,
+                    _drone.CurrentState.Vx,
+                    _drone.CurrentState.Vy,
+                    _drone.CurrentState.Vz);
+
                 // update drone control
-                _drone.SetJoystick((float)_positionController.ThrottleCmd,
-                    (float)_positionController.YawCmd, (float)_positionController.PitchCmd, (float)_positionController.RollCmd);
+                // if the control value is less than 0.05, ignore it 
+                float throttleCmd = (float)DeadzoneControlValue(_positionController.ThrottleCmd, ControlValueDeadzone);
+                float rollCmd = (float)DeadzoneControlValue(_positionController.RollCmd, ControlValueDeadzone);
+                float pitchCmd = (float)DeadzoneControlValue(_positionController.PitchCmd, ControlValueDeadzone);
+                float yawCmd = (float)DeadzoneControlValue(_positionController.YawCmd, ControlValueDeadzone);
+
+                //if (throttleCmd!=0f || rollCmd != 0f || pitchCmd != 0f || yawCmd != 0f)
+                //{
+                    _drone.SetJoystick(throttleCmd,yawCmd, pitchCmd, rollCmd);
+                    Debug.WriteLine($"Info:ControlLoop: {throttleCmd} ");
+                //} 
+               
+                DateTime localDate = DateTime.Now;;
+                Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +
+                    $"|yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} z- {_drone.CurrentState.Altitude}"
+                    + $"\t|Vx - {_drone.CurrentState.Vx} pitch - {_drone.CurrentState.Vx} Vy - {_drone.CurrentState.Vy} Vz- {_drone.CurrentState.Vz}"
+                    + $"");
+
             }
 
 
-            DateTime localDate = DateTime.Now;
-            Debug.WriteLine($"Info:ControlLoop:{localDate.Millisecond:G} " +
-                $"|yaw - {_drone.CurrentState.Yaw} pitch - {_drone.CurrentState.Pitch} roll - {_drone.CurrentState.Roll} z- {_drone.CurrentState.Altitude}"
-                + $"\t|Vx - {_drone.CurrentState.Vx} pitch - {_drone.CurrentState.Vx} Vy - {_drone.CurrentState.Vy} Vz- {_drone.CurrentState.Vz}" 
-                + $"");
-
         }
 
-        public void SendUdpDebug()
+        private double DeadzoneControlValue(double value, double threshold)
         {
-            double[] udpState = new double[10];
 
-
-            //Byte[] sendBytes = Encoding.ASCII.GetBytes("Is anybody there");
-            udpState[0] = (int)(DateTime.UtcNow.Subtract(new DateTime(1970, 1, 1))).TotalSeconds;
-            udpState[1] = _drone.CurrentState.Roll;
-            udpState[2] = _drone.CurrentState.Pitch;
-            udpState[3] = _drone.CurrentState.Yaw;
-            udpState[4] = _drone.CurrentState.Altitude;
-            udpState[9] = (double)_statePort;
-
-            Byte[] sendBytes = udpState.SelectMany(value => BitConverter.GetBytes(value)).ToArray();
-
-            try
+            if (Math.Abs(value) < threshold)
             {
-                sendingUdpClient.Send(sendBytes, sendBytes.Length);
+                return 0f;
             }
-            catch (Exception e)
+            else
             {
-                Debug.WriteLine(e.ToString());
+                return value;
             }
+
         }
 
-        // spare code for udp send
-        //try
-        //{
-        //    //Debug.WriteLine($"This is the message you received {receivingUdpClient.Available}");
-        //    if (receivingUdpClient.Available > 0)
-        //    {
-
-        //        // Blocks until a message returns on this socket from a remote host.
-        //        Byte[] receiveBytes = receivingUdpClient.Receive(ref RemoteIpEndPoint);
-
-        //        double[] values = new double[receiveBytes.Length / 8];
-
-        //        Debug.WriteLine("This is the message you received 1");
-        //        Buffer.BlockCopy(receiveBytes, 0, values, 0, values.Length * 8);
-
-        //        //string returnData = Encoding.ASCII.GetString(receiveBytes);
-
-
-        //        Debug.WriteLine("This is the message you received " +
-        //                                     values[0].ToString());
-
-        //        Debug.WriteLine("This is the message you received " +
-        //                                     values[4].ToString());
-        //        Debug.WriteLine("This message was sent from " +
-        //                                    RemoteIpEndPoint.Address.ToString() +
-        //                                    " on their port number " +
-        //                                    RemoteIpEndPoint.Port.ToString());
-        //    }
-        //}
-        //catch (Exception e)
-        //{
-        //    Debug.WriteLine(e.ToString());
-        //}
+        
 
     }
 

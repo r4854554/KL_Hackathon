@@ -4,21 +4,22 @@ using System;
 using System.Diagnostics;
 using System.Threading;
 
-// this implement a simple PD controller, using the Z, and Vz
+// this implement a simple controller for the yaw
 
 namespace HDCircles.Hackathon
 {
-    public sealed class AltitudeController
+    public sealed class YawController
 
     {
-        private object writelock = new object ();
-         public AltitudeController(double GainProportional, double GainDerivative)
+         public YawController(double GainProportional, double GainDerivative)
         {
+            // call when the object is constructed
             Init(GainProportional, GainDerivative);
         }
 
         public void Init(double GainProportional, double GainDerivative)
         {
+            // call when the object is constructed, 
             this.GainDerivative = GainDerivative;
             this.GainProportional = GainProportional;
             this.OutputMax = 1f;
@@ -27,6 +28,7 @@ namespace HDCircles.Hackathon
 
         public void Start(double currentSetpoint, double currentProcessVariable, double currentProcessVariableRate)
         {
+            // call when the controller is started
             this.SetPoint = currentSetpoint;
             this.ProcessVariable = currentProcessVariable;
             this.ProcessVariableRate = currentProcessVariableRate;
@@ -122,10 +124,9 @@ namespace HDCircles.Hackathon
         public double SetPoint {
             get => _setPoint;
             set {
-                lock (writelock) { 
-                _setPoint = Clamp(value, SetPointMax, SetPointMin);
-                }
 
+                _setPoint = Clamp(value, SetPointMax, SetPointMin);
+             
             }
         }
 

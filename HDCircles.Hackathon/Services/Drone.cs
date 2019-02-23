@@ -20,10 +20,11 @@ namespace HDCircles.Hackathon.Services
         public double Vx { get; }
         public double Vy { get; }
         public double Vz { get; }
+        public bool IsFlying { get; }
         public SDKError Error { get; }
 
         public FlightState(double altitude, double yaw, double pitch, double roll, 
-            double vx, double vy, double vz, SDKError error)
+            double vx, double vy, double vz, bool isFlyging, SDKError error)
         {
             Altitude = altitude;
             Yaw = yaw;
@@ -32,6 +33,8 @@ namespace HDCircles.Hackathon.Services
             Vx = vx;
             Vy = vy;
             Vz = vz;
+            IsFlying = isFlyging;
+
 
             Error = error;
         }
@@ -60,6 +63,45 @@ namespace HDCircles.Hackathon.Services
         public event StateChangedHandler StateChanged;
 
         private static DJISDKManager _sdkManager;
+
+        private object takeofflock = new object();
+        private object landinglock = new object();
+        private bool _isLanding; 
+        // public state that is not update from the SDK
+        public bool IsLanding {
+            get
+            {
+                lock (landinglock)
+                {
+                    return _isLanding;
+                }
+            }
+            set
+            {
+                lock (landinglock)
+                {
+                    _isLanding = value;
+                }
+            }
+        }
+        private bool _isTakeOffFinish;
+        public bool IsTakeOffFinish {
+            get
+            {
+                lock (takeofflock)
+                {
+                    return _isTakeOffFinish;
+                }
+            }
+            set
+            {
+                lock (takeofflock)
+                {
+                    _isTakeOffFinish = value;
+                }
+            }
+        }
+
 
         public static DJISDKManager SdkManager
         {
@@ -133,6 +175,8 @@ namespace HDCircles.Hackathon.Services
 
         private Drone()
         {
+            IsLanding = false;
+            //IsTakingOff = false;
             backgroundWorker = new BackgroundWorker();
             backgroundWorker.DoWork += BackgroundWorker_DoWork;
 
@@ -148,6 +192,7 @@ namespace HDCircles.Hackathon.Services
         {
             byte[] buffer;
             int width, height;
+
 
             lock (_frameLock)
             {
@@ -203,9 +248,11 @@ namespace HDCircles.Hackathon.Services
 
         private async Task CollectData()
         {
+            // Call the methods to get the values
             var attitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAttitudeAsync();
             var altitude = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetAltitudeAsync();
             var velocity = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetVelocityAsync();
+            var isFlying = await DJISDKManager.Instance.ComponentManager.GetFlightControllerHandler(0, 0).GetIsFlyingAsync();
 
             var flightStateError = attitude.error;
             var yaw = 0.0;
@@ -215,30 +262,39 @@ namespace HDCircles.Hackathon.Services
             var vx = 0.0;
             var vy = 0.0;
             var vz = 0.0;
+            var isFlyingState = false;
 
             if (attitude.error == SDKError.NO_ERROR)
             {
-                yaw = attitude.value.Value.yaw; ;
+                yaw = attitude.value.Value.yaw; 
                 pitch = attitude.value.Value.pitch;
                 roll = attitude.value.Value.roll;
+                
+            }
 
+
+            if (altitude.error == SDKError.NO_ERROR)
+            {
                 altitudeValue = altitude.value.Value.value;
             }
 
 
             if (velocity.error == SDKError.NO_ERROR)
             {
-                vx = velocity.value.Value.x; ;
+                vx = velocity.value.Value.x; 
                 vy = velocity.value.Value.y;
                 vz = velocity.value.Value.z;
+            }
 
-                altitudeValue = altitude.value.Value.value;
+            if (isFlying.error == SDKError.NO_ERROR)
+            {
+                isFlyingState = isFlying.value.Value.value;
             }
 
             lock (_stateLock)
             {
-                _currentState = new FlightState(altitudeValue, yaw, pitch, roll,vx, vy, vz, flightStateError);
-
+                _currentState = new FlightState(altitudeValue, yaw, pitch, roll,vx, vy, vz, isFlyingState, flightStateError);
+            
                 if (null != StateChanged)
                 {
                     // dispatch the state
@@ -367,16 +423,20 @@ namespace HDCircles.Hackathon.Services
 
             
         }
-
-
-
         public async void EmergencyLanding()
         {
             if (null != DJISDKManager.Instance)
             {
                 ResetJoystick();
 
-                await fcHandler.StartAutoLandingAsync();
+                var SDKErrorCode = await fcHandler.StartAutoLandingAsync();
+                if (SDKErrorCode == SDKError.NO_ERROR)
+                {
+
+                    Drone.Instance.IsLanding = true;
+                    //Drone.Instance.IsTakingOff = false;
+
+                }
                 var isFlyingResult = await fcHandler.GetIsFlyingAsync();
                 if (isFlyingResult.value.HasValue)
                 {
@@ -398,6 +458,38 @@ namespace HDCircles.Hackathon.Services
             
         }
 
+        public async Task<SDKError> TakeOff()
+        {
+            SDKError result = SDKError.UNKNOWN;
+            if (null != DJISDKManager.Instance)
+            {
+                // start take off
+                result = await fcHandler.StartTakeoffAsync();
+                // check 
+                if (result == SDKError.NO_ERROR)
+                {
+                    var TakeoffAlt = 1.18; // [m]
+                    // take off command send
+                    bool achieveTakeOffHeight = Drone.Instance.CurrentState.Altitude > TakeoffAlt;
+                    while (!achieveTakeOffHeight)
+                    {
+                        Thread.Sleep(10);
+                        achieveTakeOffHeight = Drone.Instance.CurrentState.Altitude > TakeoffAlt;
+                        result = await fcHandler.StartTakeoffAsync();
+                    }
+                    Debug.Print("Take off finish")
+;                    Drone.Instance.IsTakeOffFinish = true;
+                    
+
+                } else
+                {
+                    // start take off fail
+                    
+                }
+            }
+            return result;
+
+        }
         public async Task<bool> ConfigDroneAsync()
         {
             // set flight ceiling !! not useful, minimum is 20m

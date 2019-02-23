@@ -38,7 +38,9 @@
     using HDCircles.Hackathon.Services;
     using Windows.UI.Xaml.Media.Imaging;
     using System.Linq;
+
     using Windows.Graphics.Imaging;
+    using HDCircles.Hackathon.Views;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -833,10 +835,10 @@
         public ICommand TakeOffCommand { get; set; }
         private async Task TakeOffExecute()
         {
-            var fcHandler = GetFlightControllerHandler();
+            
 
-            var result = await fcHandler.StartTakeoffAsync();
-
+            
+            var result = await Drone.Instance.TakeOff(); 
             await UpdateCurrentState("take off executed: " + result);
         }
 
@@ -847,29 +849,7 @@
         public ICommand LandingCommand { get; set; }
         private async Task LandingExecute()
         {
-            var fcHandler = GetFlightControllerHandler();
-            
-            await ResetJoystickExecute();
-            await fcHandler.StartAutoLandingAsync();
-            var  isFlyingResult = await fcHandler.GetIsFlyingAsync();
-            if (isFlyingResult.value.HasValue)
-            {
-                var isFlying = isFlyingResult.value.Value.value;
-                while (isFlying)
-                {
-                    await fcHandler.StartAutoLandingAsync();
-                    var confirmationNeeded = await fcHandler.GetIsLandingConfirmationNeededAsync();
-                    if (confirmationNeeded.value.HasValue)
-                    {
-                        await fcHandler.ConfirmLandingAsync();
-                    }
-                    isFlyingResult = await fcHandler.GetIsFlyingAsync();
-                    if (isFlyingResult.value.HasValue) { isFlying = isFlyingResult.value.Value.value; }
-
-                }
-            }
-            
-
+            Drone.Instance.EmergencyLanding();
         }
 
         #endregion Landing Command
@@ -962,6 +942,14 @@
                     break;
                 case VirtualKey.Y:
                     gimbalYaw = -GIMBAL_ROTATE_STEP;
+                    break;
+                case VirtualKey.Up:
+                    Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(0.7);
+                    break;
+                case VirtualKey.Down:
+                    Debug.WriteLine("Info:KeyDownExecute:Up");
+                    FlightStacks.Instance._positionController.SetAltitudeStepCommand(-0.7);
                     break;
             }
 
