@@ -9,14 +9,14 @@ using System.Threading;
 namespace HDCircles.Hackathon
 {
     public sealed class AltitudeController
-
     {
         private object writelock = new object ();
-         public AltitudeController(double GainProportional, double GainDerivative)
+
+        public AltitudeController(double GainProportional, double GainDerivative)
         {
             Init(GainProportional, GainDerivative);
         }
-
+	 
         public void Init(double GainProportional, double GainDerivative)
         {
             this.GainDerivative = GainDerivative;
@@ -32,6 +32,7 @@ namespace HDCircles.Hackathon
             this.ProcessVariableRate = currentProcessVariableRate;
 
         }
+
         /// <summary>
         /// The controller output
         /// </summary>
@@ -60,7 +61,7 @@ namespace HDCircles.Hackathon
         /// <summary>
         /// The current value
         /// </summary>
-        public double ProcessVariableRate
+        private double ProcessVariableRate
         {
             get { return processVariableRate; }
             set
@@ -74,7 +75,7 @@ namespace HDCircles.Hackathon
         /// <summary>
         /// The current value
         /// </summary>
-        public double ProcessVariable
+        private double ProcessVariable
         {
             get { return processVariable; }
             set
@@ -114,16 +115,26 @@ namespace HDCircles.Hackathon
         /// </summary>
         public double ProcessVariableLast { get; private set; } = 0;
 
+        private object setLock = new object();
 
         private double _setPoint;
         /// <summary>
         /// The desired value
         /// </summary>
-        public double SetPoint {
-            get => _setPoint;
-            set {
-                lock (writelock) { 
-                _setPoint = Clamp(value, SetPointMax, SetPointMin);
+        public double SetPoint
+        {
+            get
+            {
+                lock (setLock)
+                {
+                    return _setPoint;
+                }
+            }
+            set
+            {
+                lock (setLock)
+                {
+                    _setPoint = value;
                 }
 
             }

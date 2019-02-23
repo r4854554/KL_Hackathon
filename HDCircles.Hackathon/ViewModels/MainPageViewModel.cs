@@ -41,6 +41,7 @@
 
     using Windows.Graphics.Imaging;
     using HDCircles.Hackathon.Views;
+    using System.IO;
 
     public class MainPageViewModel : ViewModelBase
     {
@@ -328,6 +329,36 @@
 
         #endregion Properties
 
+        public ICommand SaveResultCommand { get; set; }
+        private async Task SaveResultExecute()
+        {
+            try
+            {
+                var gimbal = await DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).GetGimbalAttitudeAsync();
+                var tmpName = Path.GetTempFileName().Replace(".tmp", "").Split("\\").Last();
+                var fileName = tmpName + $"_{gimbal.value.Value.pitch}" + ".csv";
+                var file = await ApplicationData.Current.LocalFolder.CreateFileAsync(fileName);
+                //var file = await StorageFile.CreateStreamedFileFromUriAsync(fileName); /*await ApplicationData.Current.LocalFolder.CreateFileAsync(ranName)*/;
+                
+                var stream = await file.OpenStreamForWriteAsync();
+                var writer = new BinaryWriter(stream);
+                var text = DecodeText;
+
+                writer.Write(text);
+                //var charArray = text.ToCharArray();
+                //var buffer = new byte[charArray.Length];
+
+                //Buffer.BlockCopy(charArray, 0, buffer, 0, charArray.Length);
+
+                writer.Dispose();
+                stream.Dispose();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine(ex.ToString());
+            }
+        }
+
         #region Class Methods
         /// <summary>
         /// Constructor MainPageViewModel
@@ -346,7 +377,8 @@
             KeyUpCommand = new TaskCommand<VirtualKey>(KeyUpExecute);
             ResetGimbalCommand = new TaskCommand(ResetGimbalExecute);
             ResetJoystickCommand = new TaskCommand(ResetJoystickExecute);
-            TestGimbalCommand = new TaskCommand(TestGimbalExecute);            
+            TestGimbalCommand = new TaskCommand(TestGimbalExecute);
+            SaveResultCommand = new TaskCommand(SaveResultExecute);
 
             commandManager.RegisterCommand(Commands.MainPageLoaded, MainPageLoadedCommand, this);
             commandManager.RegisterCommand(Commands.KeyDown, KeyDownCommand, this);
@@ -970,18 +1002,18 @@
                 if (null != DJISDKManager.Instance)
                 {
                     DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(throttle, yaw, pitch, roll);
-                    
-                    //var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
-                    //{
-                    //    mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
-                    //    pitch = gimbalPitch,
-                    //    roll = gimbalRoll,
-                    //    yaw = gimbalYaw,
-                    //    pitchIgnored = false,
-                    //    rollIgnored = true,
-                    //    yawIgnored = true,
-                    //    duration = 1
-                    //});
+
+                    var result = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
+                    {
+                        mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
+                        pitch = gimbalPitch,
+                        roll = gimbalRoll,
+                        yaw = gimbalYaw,
+                        pitchIgnored = false,
+                        rollIgnored = true,
+                        yawIgnored = true,
+                        duration = 1
+                    });
 
                     await UpdateCurrentState("Virtual Joystick Update! " );
                 }
@@ -1048,8 +1080,8 @@
                         roll = gimbalRoll,
                         yaw = gimbalYaw,
                         pitchIgnored = false,
-                        rollIgnored = false,
-                        yawIgnored = false,
+                        rollIgnored = true,
+                        yawIgnored = true,
                         duration = 0.3
                     });
                 }
