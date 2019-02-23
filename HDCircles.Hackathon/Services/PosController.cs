@@ -2,6 +2,7 @@
 using DJI.WindowsSDK;
 using Dynamsoft.Barcode;
 using HDCircles.Hackathon.Services;
+using HDCircles.Hackathon.util;
 using OpenCvSharp;
 using System;
 using System.Collections;
@@ -187,25 +188,25 @@ namespace HDCircles.Hackathon
 
         private async Task PoseEstimate(LiveFrame frame, Detector det)
         {
-            var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);            
-            var detIndexer = det.homography.GetGenericIndexer<double>();
+            //var srcMat = new Mat(frame.Height, frame.Width, MatType.CV_8UC4, frame.Data);            
+            //var detIndexer = det.homography.GetGenericIndexer<double>();
 
-            var transform = await GetTransformFromDetection(det, 100f);
-            var indexer = transform.GetGenericIndexer<double>();
+            //var transform = await GetTransformFromDetection(det, 100f);
+            //var indexer = transform.GetGenericIndexer<double>();
 
-            var tx = indexer[0, 3];
-            var ty = indexer[1, 3];
-            var tz = indexer[2, 3];
-            var yawRa = Math.Atan2(indexer[1, 0], indexer[0, 0]);
-            var pitchRa = Math.Atan2(-indexer[2, 0], Math.Sqrt(Math.Pow(indexer[2, 1], 2) + Math.Pow(indexer[2, 2], 2)));
-            var rollRa = Math.Atan2(indexer[2, 1], indexer[2, 2]);
+            //var tx = indexer[0, 3];
+            //var ty = indexer[1, 3];
+            //var tz = indexer[2, 3];
+            //var yawRa = Math.Atan2(indexer[1, 0], indexer[0, 0]);
+            //var pitchRa = Math.Atan2(-indexer[2, 0], Math.Sqrt(Math.Pow(indexer[2, 1], 2) + Math.Pow(indexer[2, 2], 2)));
+            //var rollRa = Math.Atan2(indexer[2, 1], indexer[2, 2]);
 
-            var yaw = yawRa * (180 / Math.PI);
-            var pitch = pitchRa * (180 / Math.PI);
-            var roll = rollRa * (180 / Math.PI);
+            //var yaw = yawRa * (180 / Math.PI);
+            //var pitch = pitchRa * (180 / Math.PI);
+            //var roll = rollRa * (180 / Math.PI);
             //var d = Math.Sqrt(Math.Pow(tx, 2) + Math.Pow(ty, 2) + Math.Pow(tz, 2));
 
-            lock (updateLock) {
+            //lock (updateLock) {
                 //var poseEstimation = new ApriltagPoseEstimation(det.id, yaw, pitch, roll, tx, ty, tz, frame);
 
                 //PoseEstimation = poseEstimation;
@@ -214,10 +215,16 @@ namespace HDCircles.Hackathon
                 //{
                 //    PoseUpdated.Invoke(poseEstimation);
                 //}
-            }
+            //}
         }
 
-        private async Task<Mat> GetTransformFromDetection(Detector det, float tagSize)
+        /// <summary>
+        /// Get Joint Transform Matrix from H and image size and position.
+        /// </summary>
+        /// <param name="result"></param>
+        /// <param name="tagSize"></param>
+        /// <returns></returns>
+        private async Task<Mat> GetTransformFromDetection(/*Detector det*/LocalizationResult result, float tagSize)
         {
             var objPoints = new List<Point3f>();
             var imgPoints = new List<Point2f>();
@@ -228,37 +235,42 @@ namespace HDCircles.Hackathon
             objPoints.Add(new Point3f { X = tagRadius, Y = tagRadius, Z = 0 });
             objPoints.Add(new Point3f { X = -tagRadius, Y = tagRadius, Z = 0 });
 
-            switch (det.rotation)
+            foreach (var point in result.ResultPoints)
             {
-                case 1:
-                    // first quadrant
-                    imgPoints.Add(det.points[2]);
-                    imgPoints.Add(det.points[1]);
-                    imgPoints.Add(det.points[0]);
-                    imgPoints.Add(det.points[3]);
-                    break;
-                case 0:
-                    // fourth quadrant
-                    imgPoints.Add(det.points[3]);
-                    imgPoints.Add(det.points[2]);
-                    imgPoints.Add(det.points[1]);
-                    imgPoints.Add(det.points[0]);
-                    break;
-                case 3:
-                    // third quadrant
-                    imgPoints.Add(det.points[0]);
-                    imgPoints.Add(det.points[3]);
-                    imgPoints.Add(det.points[2]);
-                    imgPoints.Add(det.points[1]);
-                    break;
-                case 2:
-                    // second quadrant
-                    imgPoints.Add(det.points[1]);
-                    imgPoints.Add(det.points[0]);
-                    imgPoints.Add(det.points[3]);
-                    imgPoints.Add(det.points[2]);
-                    break;
+                imgPoints.Add(new Point2f(point.X, point.Y));
             }
+
+            //switch (det.rotation)
+            //{
+            //    case 1:
+            //        // first quadrant
+            //        imgPoints.Add(det.points[2]);
+            //        imgPoints.Add(det.points[1]);
+            //        imgPoints.Add(det.points[0]);
+            //        imgPoints.Add(det.points[3]);
+            //        break;
+            //    case 0:
+            //        // fourth quadrant
+            //        imgPoints.Add(det.points[3]);
+            //        imgPoints.Add(det.points[2]);
+            //        imgPoints.Add(det.points[1]);
+            //        imgPoints.Add(det.points[0]);
+            //        break;
+            //    case 3:
+            //        // third quadrant
+            //        imgPoints.Add(det.points[0]);
+            //        imgPoints.Add(det.points[3]);
+            //        imgPoints.Add(det.points[2]);
+            //        imgPoints.Add(det.points[1]);
+            //        break;
+            //    case 2:
+            //        // second quadrant
+            //        imgPoints.Add(det.points[1]);
+            //        imgPoints.Add(det.points[0]);
+            //        imgPoints.Add(det.points[3]);
+            //        imgPoints.Add(det.points[2]);
+            //        break;
+            //}
 
             var intrinsics = new double[3, 3]
             {
