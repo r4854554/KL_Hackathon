@@ -7,7 +7,6 @@ using System.Diagnostics;
 using System.Runtime.InteropServices.WindowsRuntime;
 using System.Threading;
 using System.Threading.Tasks;
-using System.Windows.Input;
 
 namespace HDCircles.Hackathon.Services
 {
@@ -505,6 +504,24 @@ namespace HDCircles.Hackathon.Services
             //GetFlightControllerHandler().SetHeightLimitAsync(ceiling);
             FCFailsafeActionMsg actionMsg;
             actionMsg.value = FCFailsafeAction.LANDING;
+            //var value = new GimbalAngleRotation();
+            //value.pitch = -16.9;
+            //DJISDKManager.Instance.VirtualRemoteController.UpdateJoystickValue(0, 0, 0, 0);
+            //if (null != DJISDKManager.Instance)
+            //{
+            //    var error = await GetGimbalHandler().RotateByAngleAsync(new GimbalAngleRotation
+            //    {
+            //        mode = GimbalAngleRotationMode.RELATIVE_ANGLE,
+            //        pitch = -16.9,
+            //        roll = 0,
+            //        yaw = 0,
+            //        pitchIgnored = false,
+            //        rollIgnored = true,
+            //        yawIgnored = true,
+            //        duration = 0.3
+            //    });
+            //    Debug.Print(error.ToString());
+            //}
             await GetFlightControllerHandler().SetFailsafeActionAsync(actionMsg);
 
             return true;

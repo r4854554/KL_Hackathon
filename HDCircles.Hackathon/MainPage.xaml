@@ -20,6 +20,7 @@
 
         <CommandBar Grid.Row="0" VerticalAlignment="Stretch">
             <AppBarSeparator />
+            <AppBarButton Icon="Document" Command="{Binding SaveResultCommand}" Label="Take Off" />
             <AppBarButton Icon="Up" Command="{Binding TakeOffCommand}" Label="Take Off" />
             <AppBarButton Icon="Download" Command="{Binding LandingCommand}" Label="Landing" />
             <CommandBar.Content>

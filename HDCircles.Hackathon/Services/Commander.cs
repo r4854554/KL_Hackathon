@@ -29,12 +29,16 @@ namespace HDCircles.Hackathon.Services
 
         public float RelativeY { get; }
 
-        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY)
+        public string LocationId { get; }
+
+        public MissionArgs(float yaw, float altitude, float relativeX, float relativeY, string locationId)
         {
             Yaw = yaw;
             Altitude = altitude;
             RelativeX = relativeX;
             RelativeY = relativeY;
+
+            LocationId = locationId;
         }
     }
 
@@ -210,6 +214,29 @@ namespace HDCircles.Hackathon.Services
         private bool IsCompleteExecute()
         {
             var currentState = Drone.Instance.CurrentState;
+            var yawError = Math.Abs(currentState.Yaw - Args.Yaw);
+            var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
+            
+            return yawError < 2f && altitudeError < 0.2f;
+        }
+    }
+
+    public sealed class StockTakingMission: Mission
+    {
+        public StockTakingMission()
+        {
+            _task = TaskExecute;
+            Type = MissionType.StockTaking;
+        }
+
+        protected override Func<bool> IsCompleted => IsCompleteExecute;
+
+        private async Task TaskExecute()
+        { }
+
+        private bool IsCompleteExecute()
+        {
+            var currentState = Drone.Instance.CurrentState;
             var yaw = Args.Yaw;
             var altitude = Args.Altitude;
 
@@ -231,9 +258,9 @@ namespace HDCircles.Hackathon.Services
 
         private int nextId = 1;
 
-        public Queue<Mission> activeMissionStasks;
+        public Queue<Mission> activeMissions;
 
-        public Queue<Mission> suspendedMissionStasks;
+        public Queue<Mission> suspendedMissions;
 
         private HashSet<Mission> completedMissions;
 
@@ -261,8 +288,8 @@ namespace HDCircles.Hackathon.Services
 
         private Commander()
         {
-            activeMissionStasks = new Queue<Mission>();
-            suspendedMissionStasks = new Queue<Mission>();
+            activeMissions = new Queue<Mission>();
+            suspendedMissions = new Queue<Mission>();
             completedMissions = new HashSet<Mission>();
             workerThread = new Thread(Worker_DoWork);
 
@@ -301,7 +328,7 @@ namespace HDCircles.Hackathon.Services
                 }
                 catch (Exception ex)
                 {
-                    Debug.WriteLine("commander: " + ex.ToString());
+                    Debug.WriteLine("Cmd Worker: " + ex.ToString());
                 }
 
                 watch.Stop();
@@ -326,7 +353,7 @@ namespace HDCircles.Hackathon.Services
             // check the mission timeout
             if (null != mission)
             {
-                Logger.Instance.Log($"mission {mission.Id} {mission.Type} is running...");
+                Debug.WriteLine($"mission {mission.Id} {mission.Type} is running...");
 
                 // check the result of mission and return if it is already completed.
                 if (!mission.CheckIfCompleted())
@@ -356,7 +383,14 @@ namespace HDCircles.Hackathon.Services
                 currentMission = mission;
             }
 
-            mission.Start();
+            try
+            {
+                mission.Start();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Cmd Executor: ${ex.ToString()}");
+            }
         }
 
         private int GetNextId()
@@ -378,13 +412,13 @@ namespace HDCircles.Hackathon.Services
 
             lock (stackLock)
             {
-                if (activeMissionStasks.Any(x => x.Equals(mission)))
+                if (activeMissions.Any(x => x.Equals(mission)))
                 {
                     // drop the mission if duplicated
                     return;
                 }
 
-                activeMissionStasks.Enqueue(mission);
+                activeMissions.Enqueue(mission);
             }
         }
 
@@ -394,6 +428,7 @@ namespace HDCircles.Hackathon.Services
             var mission = new TakeOffMission
             {
                 Id = id,
+                Type = MissionType.TakeOff,
             };
 
             AddMission(mission);
@@ -404,20 +439,26 @@ namespace HDCircles.Hackathon.Services
             var id = GetNextId();
             var mission = new LandingMission
             {
-                Id = id
+                Id = id,
+                Type = MissionType.Landing,
             };
             
             AddMission(mission);
         }
 
-        public void AddSetPointMission(float yawSetpoint, float altitudeSetpoint, float relativeXSetpoint, float relativeYSetpoint)
+        public void AddSetPointMission(
+            float yawSetpoint, 
+            float altitudeSetpoint, 
+            float relativeXSetpoint, 
+            float relativeYSetpoint,
+            string locationId)
         {
             var id = GetNextId();
 
             var mission = new SetPointMission
             {
                 Id = id,
-                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint)
+                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, locationId)
             };
 
             AddMission(mission);

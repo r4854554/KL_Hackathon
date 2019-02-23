@@ -191,7 +191,7 @@ namespace HDCircles.Hackathon
             AltitudeSetpoint = AltitudeSetpoint + step;
         }
 
-        public void SetYawStepCommand(double step)
+	public void SetYawStepCommand(double step)
         {
             //Debug.Print($"Info:SetYawStepCommand: {step}");
             YawSetpoint = YawSetpoint + step; 
