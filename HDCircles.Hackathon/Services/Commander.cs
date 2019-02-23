@@ -89,7 +89,7 @@ namespace HDCircles.Hackathon.Services
             }
 
             missionTaskObj = Task();
-            missionTaskObj.Start();
+            //missionTaskObj.Start();
 
             //timer = new System.Timers.Timer(Timeout);
             //timer.Elapsed += Timer_Timeout;
@@ -202,7 +202,11 @@ namespace HDCircles.Hackathon.Services
 
         private bool IsCompleteExecute()
         {
-            return true;
+            var currentState = Drone.Instance.CurrentState;
+            var yawError = Math.Abs(currentState.Yaw - Args.Yaw);
+            var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
+            
+            return yawError < 2f && altitudeError < 0.2f;
         }
     }
 
@@ -300,7 +304,7 @@ namespace HDCircles.Hackathon.Services
             // check the mission timeout
             if (null != mission)
             {
-                Logger.Instance.Log($"mission {mission.Id} {mission.Type} is running...");
+                Debug.WriteLine($"mission {mission.Id} {mission.Type} is running...");
 
                 // check the result of mission and return if it is already completed.
                 if (!mission.CheckIfCompleted())
@@ -321,7 +325,7 @@ namespace HDCircles.Hackathon.Services
             // no more mission, skip this cycle.
             if (!activeMissionStasks.Any())
             {
-                Logger.Instance.Log("empty mission stack...");
+                Debug.WriteLine("empty mission stack...");
                 return;
             }
 
@@ -331,7 +335,14 @@ namespace HDCircles.Hackathon.Services
                 currentMission = mission;
             }
 
-            mission.Start();
+            try
+            {
+                mission.Start();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"Cmd Executor: ${ex.ToString()}");
+            }
         }
 
         private int GetNextId()
@@ -369,6 +380,7 @@ namespace HDCircles.Hackathon.Services
             var mission = new TakeOffMission
             {
                 Id = id,
+                Type = MissionType.TakeOff,
             };
 
             AddMission(mission);
@@ -379,7 +391,8 @@ namespace HDCircles.Hackathon.Services
             var id = GetNextId();
             var mission = new LandingMission
             {
-                Id = id
+                Id = id,
+                Type = MissionType.Landing,
             };
             
             AddMission(mission);

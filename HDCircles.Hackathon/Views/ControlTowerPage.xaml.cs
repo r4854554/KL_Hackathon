@@ -193,11 +193,12 @@
 
                 // TODO: design the mission stack
                 Commander.Instance.AddTakeOffMission();
-                //Commander.Instance.AddSetPointMission(0, 1.8f, 0, 0);
-                //Commander.Instance.AddSetPointMission(0, 1.0f, 0, 0);
+                Commander.Instance.AddSetPointMission(0, 1.8f, 0, 0);
+                Commander.Instance.AddSetPointMission(0, 1.1f, 0, 0);
+                Commander.Instance.AddSetPointMission(0, 0.5f, 0, 0);
                 //Commander.Instance.AddSetPointMission(60, 1.2f, 0, 0);
                 //Commander.Instance.AddSetPointMission(60, 0.5f, 0, 0);
-                Commander.Instance.AddLandingMission();
+                //Commander.Instance.AddLandingMission();
                 
 
                 EnableInputs();

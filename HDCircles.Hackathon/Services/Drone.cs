@@ -159,7 +159,16 @@ namespace HDCircles.Hackathon.Services
         /// current flight state of the drone.
         /// </summary>
         private FlightState _currentState;
-        public FlightState CurrentState { get => _currentState; }
+        public FlightState CurrentState
+        {
+            get
+            {
+                lock (_stateLock)
+                {
+                    return _currentState;
+                }
+            }
+        }
 
         private static Drone _instance;
         public static Drone Instance
