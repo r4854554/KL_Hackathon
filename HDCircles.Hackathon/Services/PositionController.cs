@@ -8,6 +8,7 @@ namespace HDCircles.Hackathon
     public class PositionController
     {
         AltitudeController altitudeController;
+        YawController yawController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
 
@@ -28,7 +29,7 @@ namespace HDCircles.Hackathon
         public double AltitudeSetpoint {
             get => altitudeSetpoint;
             set {
-                Debug.Print($"Info:AltitudeSet: {value}");
+                Debug.Print($"Info:Altitude Setpoint chainged: {value}");
                 altitudeSetpoint = value;
                 altitudeController.SetPoint = altitudeSetpoint;
             }
@@ -69,7 +70,10 @@ namespace HDCircles.Hackathon
         public double YawSetpoint {
             get => yawSetpoint;
             set {
+                Debug.Print($"Info:YawSetpoint changed: {value}");
+                
                 yawSetpoint = value;
+                yawController.SetPoint = yawSetpoint;
             }
         }
 
@@ -93,7 +97,10 @@ namespace HDCircles.Hackathon
         public void Init()
         {
            
+
             altitudeController = new AltitudeController(Gain_p_alt, Gain_d_alt);
+
+            yawController = new YawController(Gain_p_alt, Gain_d_alt);
         }
 
         public void Reset()
@@ -117,14 +124,18 @@ namespace HDCircles.Hackathon
           // Get feedback
           // Update altitude controller
             ThrottleCmd = altitudeController.Update(altitude, vz);
+            double falseRate = 0.0; 
+            YawCmd = yawController.Update(yaw, falseRate);
             
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
             double defaultTakeoffAltitude = 1.2;
             altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
+            yawController.Start(0.0, 0.0, 0.0);
+
         }
-        
+
         public void SetAltitudeStepCommand(double step)
         {
             Debug.Print($"Info:SetAltitudeStepCommand: {step}");
