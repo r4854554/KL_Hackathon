@@ -64,9 +64,43 @@ namespace HDCircles.Hackathon.Services
 
         private static DJISDKManager _sdkManager;
 
+        private object takeofflock = new object();
+        private object landinglock = new object();
+        private bool _isLanding; 
         // public state that is not update from the SDK
-        public bool IsLanding { get; set; }
-        //public bool IsTakingOff { get; set; }
+        public bool IsLanding {
+            get
+            {
+                lock (landinglock)
+                {
+                    return _isLanding;
+                }
+            }
+            set
+            {
+                lock (landinglock)
+                {
+                    _isLanding = value;
+                }
+            }
+        }
+        private bool _isTakeOffFinish;
+        public bool IsTakeOffFinish {
+            get
+            {
+                lock (takeofflock)
+                {
+                    return _isTakeOffFinish;
+                }
+            }
+            set
+            {
+                lock (takeofflock)
+                {
+                    _isTakeOffFinish = value;
+                }
+            }
+        }
 
 
         public static DJISDKManager SdkManager
@@ -158,6 +192,7 @@ namespace HDCircles.Hackathon.Services
         {
             byte[] buffer;
             int width, height;
+
 
             lock (_frameLock)
             {
@@ -423,6 +458,38 @@ namespace HDCircles.Hackathon.Services
             
         }
 
+        public async Task<SDKError> TakeOff()
+        {
+            SDKError result = SDKError.UNKNOWN;
+            if (null != DJISDKManager.Instance)
+            {
+                // start take off
+                result = await fcHandler.StartTakeoffAsync();
+                // check 
+                if (result == SDKError.NO_ERROR)
+                {
+                    var TakeoffAlt = 1.18; // [m]
+                    // take off command send
+                    bool achieveTakeOffHeight = Drone.Instance.CurrentState.Altitude > TakeoffAlt;
+                    while (!achieveTakeOffHeight)
+                    {
+                        Thread.Sleep(10);
+                        achieveTakeOffHeight = Drone.Instance.CurrentState.Altitude > TakeoffAlt;
+                        result = await fcHandler.StartTakeoffAsync();
+                    }
+                    Debug.Print("Take off finish")
+;                    Drone.Instance.IsTakeOffFinish = true;
+                    
+
+                } else
+                {
+                    // start take off fail
+                    
+                }
+            }
+            return result;
+
+        }
         public async Task<bool> ConfigDroneAsync()
         {
             // set flight ceiling !! not useful, minimum is 20m

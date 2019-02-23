@@ -172,7 +172,7 @@ namespace HDCircles.Hackathon.Services
             //      Update the current process variable 
             //      Update the crrent time
             //      Update the control variable  
-            if (_isStarted && _drone.CurrentState.IsFlying && !_drone.IsLanding)
+            if (_isStarted && _drone.CurrentState.IsFlying && !_drone.IsLanding && _drone.IsTakeOffFinish)
             {
 
                 // update postion controller
@@ -194,8 +194,7 @@ namespace HDCircles.Hackathon.Services
 
                 //if (throttleCmd!=0f || rollCmd != 0f || pitchCmd != 0f || yawCmd != 0f)
                 //{
-                    _drone.SetJoystick(throttleCmd,
-                   yawCmd, pitchCmd, rollCmd);
+                    _drone.SetJoystick(throttleCmd,yawCmd, pitchCmd, rollCmd);
                     Debug.WriteLine($"Info:ControlLoop: {throttleCmd} ");
                 //} 
                

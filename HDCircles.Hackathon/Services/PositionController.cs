@@ -12,6 +12,13 @@ namespace HDCircles.Hackathon
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
 
+        // lock for thread safe set
+        private object _altitudeSetpointLock = new object();
+        private object _yawSetpointLock = new object();
+        private object _relativeXSetpointLock = new object();
+        private object _relativeYSetpointLock = new object();
+
+
         // the output of position controller - control to the drone
         //private double throttleCmd = 0.0;
         public double ThrottleCmd { get; private set; } = 0;
@@ -27,10 +34,20 @@ namespace HDCircles.Hackathon
         // Controller setpoints
         private double altitudeSetpoint;  
         public double AltitudeSetpoint {
-            get => altitudeSetpoint;
+            get
+            {
+                lock (_altitudeSetpointLock)
+                {
+                    return altitudeSetpoint;
+                }
+                
+            }
             set {
                 Debug.Print($"Info:Altitude Setpoint chainged: {value}");
-                altitudeSetpoint = value;
+                lock (_altitudeSetpointLock)
+                {
+                    altitudeSetpoint = value;
+                }
                 altitudeController.SetPoint = altitudeSetpoint;
             }
         }
@@ -38,43 +55,74 @@ namespace HDCircles.Hackathon
         private double relativeXSetpoint = 0.0;
         public double RelativeXSetpoint
         {
-            get => relativeXSetpoint;
+            get
+            {
+                lock (_relativeXSetpointLock)
+                {
+                    return relativeXSetpoint;
+                }
+
+            }
             set
             {
-                relativeXSetpoint = value;
+                lock (_relativeXSetpointLock)
+                {
+                    relativeXSetpoint = value;
+                }
             }
         }
 
         private double relativeYSetpoint = 0.0;
         public double RelativeYSetpoint
         {
-            get => relativeYSetpoint;
+            get
+            {
+                lock (_relativeYSetpointLock)
+                {
+                    return relativeYSetpoint;
+                }
+
+            }
             set
             {
-                relativeYSetpoint = value;
-
+                lock (_relativeYSetpointLock)
+                {
+                    relativeYSetpoint = value;
+                }
             }
         }
 
-        private double relativeZSetpoint;
-        public double RelativeZSetpoint
-        {
-            get => relativeZSetpoint;
-            set
-            {
-                relativeZSetpoint = value;
+        //private double relativeZSetpoint;
+        //public double RelativeZSetpoint
+        //{
+        //    get => relativeZSetpoint;
+        //    set
+        //    {
+        //        relativeZSetpoint = value;
 
-            }
-        }
+        //    }
+        //}
         private double yawSetpoint;
         public double YawSetpoint {
-            get => yawSetpoint;
-            set {
+
+            get
+            {
+                lock (_yawSetpointLock)
+                {
+                    return yawSetpoint;
+                }
+
+            }
+            set
+            {
                 Debug.Print($"Info:YawSetpoint changed: {value}");
-                
-                yawSetpoint = value;
+                lock (_yawSetpointLock)
+                {
+                    yawSetpoint = value;
+                }
                 yawController.SetPoint = yawSetpoint;
             }
+           
         }
 
         // constructor
@@ -100,7 +148,7 @@ namespace HDCircles.Hackathon
 
             altitudeController = new AltitudeController(Gain_p_alt, Gain_d_alt);
 
-            yawController = new YawController(Gain_p_alt, Gain_d_alt);
+            //yawController = new YawController(Gain_p_alt, Gain_d_alt);
         }
 
         public void Reset()
@@ -139,7 +187,11 @@ namespace HDCircles.Hackathon
         public void SetAltitudeStepCommand(double step)
         {
             Debug.Print($"Info:SetAltitudeStepCommand: {step}");
-            AltitudeSetpoint = AltitudeSetpoint + step;
+           
+                AltitudeSetpoint = AltitudeSetpoint + step;
+            
+            
+            
         }
 
     }

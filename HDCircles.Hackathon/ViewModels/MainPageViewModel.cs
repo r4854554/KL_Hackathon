@@ -573,18 +573,8 @@
         {
             
 
-            var fcHandler = GetFlightControllerHandler();
             
-   
-            var result = await fcHandler.StartTakeoffAsync();
-            if (result == SDKError.NO_ERROR)
-            {
-                Drone.Instance.IsLanding = false;
-                //Drone.Instance.IsTakingOff = true;
-            }
-
-
-
+            var result = await Drone.Instance.TakeOff(); 
             await UpdateCurrentState("take off executed: " + result);
         }
 

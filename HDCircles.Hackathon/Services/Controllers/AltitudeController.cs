@@ -11,6 +11,7 @@ namespace HDCircles.Hackathon
     public sealed class AltitudeController
 
     {
+        private object writelock = new object ();
          public AltitudeController(double GainProportional, double GainDerivative)
         {
             Init(GainProportional, GainDerivative);
@@ -121,9 +122,10 @@ namespace HDCircles.Hackathon
         public double SetPoint {
             get => _setPoint;
             set {
-
+                lock (writelock) { 
                 _setPoint = Clamp(value, SetPointMax, SetPointMin);
-             
+                }
+
             }
         }
 
