@@ -64,7 +64,25 @@ namespace HDCircles.Hackathon
             return output;
         }
 
-        public double CurrentIndex { get; set; } = 0;
+        private object indexLock = new object();
+        private double _currentIndex = 0;
+        public double CurrentIndex
+        {
+            get
+            {
+                lock (indexLock)
+                {
+                    return _currentIndex;
+                }
+            }
+            set
+            {
+                lock (indexLock)
+                {
+                    _currentIndex = value;
+                }
+            }
+        }
         public double TargetIndex { get; set; } = 0;
         public double StepCmd { get; set; } = 0.5;
 

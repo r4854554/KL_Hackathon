@@ -51,8 +51,9 @@ namespace HDCircles.Hackathon
                 lock (_altitudeSetpointLock)
                 {
                     altitudeSetpoint = value;
+                    altitudeController.SetPoint = altitudeSetpoint;
                 }
-                altitudeController.SetPoint = altitudeSetpoint;
+                
             }
         }
 
@@ -122,8 +123,8 @@ namespace HDCircles.Hackathon
                 lock (_yawSetpointLock)
                 {
                     yawSetpoint = value;
+                    yawController.SetPoint = yawSetpoint;
                 }
-                yawController.SetPoint = yawSetpoint;
             }
            
         }
@@ -146,7 +147,7 @@ namespace HDCircles.Hackathon
                 lock (indexLock)
                 {
                     _targetIndex = value;
-                    Debug.Print($"Info:SetLateralIndexCommand: {value}");
+                    //Debug.Print($"Info:SetLateralIndexCommand: {value}");
 
                 }
             }
@@ -168,7 +169,9 @@ namespace HDCircles.Hackathon
             {
                 lock (indexLock)
                 {
-                    _currentIndex = value; 
+                    _currentIndex = value;
+
+                    //Debug.Print($"Info:SetLateralCurIndex: {value}");
 
                 }
             }
@@ -225,7 +228,7 @@ namespace HDCircles.Hackathon
 
 
             RollCmd = lateralController.Update(CurrentIndex, TargetIndex, RightSide);
-            //Debug.Print($"RollCmd: { }");
+            Debug.Print($"RollCmd: {RollCmd} {CurrentIndex} {TargetIndex}");
         }
 
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
@@ -243,10 +246,15 @@ namespace HDCircles.Hackathon
             AltitudeSetpoint = AltitudeSetpoint + step; 
         }
 
-	public void SetYawStepCommand(double step)
+	    public void SetYawStepCommand(double step)
         {
             //Debug.Print($"Info:SetYawStepCommand: {step}");
             YawSetpoint = YawSetpoint + step; 
+        }
+        
+        public double GetLateralCurrentIndex()
+        {
+            return lateralController.CurrentIndex;
         }
 
     }

@@ -4,8 +4,10 @@
     using HDCircles.Hackathon.Services;
     using OpenCvSharp;
     using System;
+    using System.Diagnostics;
     using System.Runtime.InteropServices;
     using System.Runtime.InteropServices.WindowsRuntime;
+    using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
     using Windows.UI.Core;
@@ -97,6 +99,31 @@
             });
         }
 
+        private object indexLock = new object();
+
+        public double AverrageQrCount { get; set; } = 0;
+        
+        private double _averrageQrIndex;
+        public double AverrageQrIndex
+        {
+            get
+            {
+                lock (indexLock)
+                {
+                    return _averrageQrIndex;
+                }
+            }
+            set
+            {
+                lock (indexLock)
+                {
+                    //if (value != 0.0) { _averrageQrIndex = value; }
+                    _averrageQrIndex = value;
+
+                }
+            }
+        }
+
         private async void Instance_PoseUpdated(ApriltagPoseEstimation pose)
         {
             await Dispatcher.RunAsync(CoreDispatcherPriority.Normal, () =>
@@ -122,6 +149,37 @@
                     bgraData.AsBuffer().CopyTo(LiveFeedSource.PixelBuffer);
 
                     LiveFeedSource.Invalidate();
+
+                    var tempAverrageQrIndex = 0;
+                    var tempAverageQrCount = 0;
+
+                    foreach (var result in pose.DetectResults)
+                    {
+                        //Debug.Print($"{ result.BarcodeText}\n");
+
+                        var locReg = new Regex(@"^[A-Z]{2}[0-9]{1}[0-9]{2}[0-9][0-9]{2}$");
+
+
+                        // only care about location tag
+                        if (locReg.Match(result.BarcodeText).Success)
+                        {
+                            var LocationTag = result.BarcodeText;
+                            var pos = Regex.Match(result.BarcodeText, @"(.{2})\s*$"); ;
+                            var num = Int32.Parse(pos.Value);
+
+                            tempAverrageQrIndex = tempAverrageQrIndex + num;
+                            //AverrageQrIndex = AverrageQrIndex + num;
+                            tempAverageQrCount += 1;
+
+                        }
+                    }
+
+                    AverrageQrCount = tempAverageQrCount;
+                    AverrageQrIndex = tempAverrageQrIndex;
+
+                    //Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
+                    if (AverrageQrCount > 0) { FlightStacks.Instance._positionController.CurrentIndex = AverrageQrIndex / AverrageQrCount; }
+
                     //PoseText.Text = $"tag id: {pose.TagId} yaw: {pose.Yaw} pitch: {pose.Pitch} roll: {pose.Roll} tx: {pose.Tx} ty: {pose.Ty} tz: {pose.Tz}";
                 }
             });
@@ -170,12 +228,12 @@
                 altitudeValue = 1.2f;
             }
 
-            if (relativeXValue < 1 || relativeXValue > 15)
+            if (relativeXValue < 2 || relativeXValue > 14)
             {
                 relativeXValue = 13;
             }
 
-            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue, locationValue, isRightSide ?? true);
+            var args = new InputArgs(yawValue, altitudeValue, relativeXValue, relativeYValue, locationValue, isRightSide ?? false);
             
             return args;
         }
@@ -301,15 +359,48 @@
 
                 //Thread.Sleep(3500);
 
-                Commander.Instance.AddSetPointMission(35, 1.5f, 0, 0, 13, true);
-                Commander.Instance.AddSetPointMission(35, 0.9f, 0, 0, 12, true);
-                Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, 11, true);
+                //Commander.Instance.AddSetPointMission(35, 1.5f, 0, 0, 13, true);
+                //Commander.Instance.AddSetPointMission(35, 0.9f, 0, 0, 12, true);
+                //Commander.Instance.AddSetPointMission(35, 0.5f, 0, 0, 11, true);
                 //Commander.Instance.AddSetPointMission(-145, 0.5f, 0, 0, 11);
                 //Commander.Instance.AddSetPointMission(-145, 1.1f, 0, 0, 11);
                 //Commander.Instance.AddSetPointMission(-145, 1.7f, 0, 0, 10);
-                
+
+                DoHackPath();
+
                 EnableInputs();
             }
+        }
+
+        private void DoHackPath()
+        {
+            // left side top row
+            Commander.Instance.AddSetPointMission(20, 1.4f, 0, 0, 14, false);
+            Commander.Instance.AddSetPointMission(20, 1.4f, 0, 0, 13, false);
+            Commander.Instance.AddSetPointMission(20, 1.4f, 0, 0, 12, false);
+            Commander.Instance.AddSetPointMission(20, 1.4f, 0, 0, 11, false);
+            Commander.Instance.AddSetPointMission(20, 1.4f, 0, 0, 10, false);
+
+            // left side middle row
+            Commander.Instance.AddSetPointMission(20, 0.9f, 0, 0, 10, false);
+            Commander.Instance.AddSetPointMission(20, 0.9f, 0, 0, 11, false);
+            Commander.Instance.AddSetPointMission(20, 0.9f, 0, 0, 12, false);
+            Commander.Instance.AddSetPointMission(20, 0.9f, 0, 0, 13, false);
+            Commander.Instance.AddSetPointMission(20, 0.9f, 0, 0, 14, false);
+            
+            // right side top row
+            Commander.Instance.AddSetPointMission(-160, 1.4f, 0, 0, 14, true);
+            Commander.Instance.AddSetPointMission(-160, 1.4f, 0, 0, 13, true);
+            Commander.Instance.AddSetPointMission(-160, 1.4f, 0, 0, 12, true);
+            Commander.Instance.AddSetPointMission(-160, 1.4f, 0, 0, 11, true);
+            Commander.Instance.AddSetPointMission(-160, 1.4f, 0, 0, 10, true);
+
+            // right side middle row
+            Commander.Instance.AddSetPointMission(-160, 0.9f, 0, 0, 10, true);
+            Commander.Instance.AddSetPointMission(-160, 0.9f, 0, 0, 11, true);
+            Commander.Instance.AddSetPointMission(-160, 0.9f, 0, 0, 12, true);
+            Commander.Instance.AddSetPointMission(-160, 0.9f, 0, 0, 13, true);
+            Commander.Instance.AddSetPointMission(-160, 0.9f, 0, 0, 14, true);
         }
     }
 }

@@ -216,17 +216,19 @@ namespace HDCircles.Hackathon.Services
             //PositionController.Instance.RelativeYSetpoint = args.RelativeY;
 
             PositionController.Instance.TargetIndex = args.PositionId;
-            PositionController.Instance.RightSide = true;
+            PositionController.Instance.RightSide = args.RightSide;
         }
 
         private bool IsCompleteExecute()
         {
             var currentState = Drone.Instance.CurrentState;
-            var currentIndex = PositionController.Instance.CurrentIndex;
+            var currentIndex = PositionController.Instance.GetLateralCurrentIndex();
             var yawError = Math.Abs(currentState.Yaw - Args.Yaw);
             var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
             var posError = Math.Abs(currentIndex - Args.PositionId);
-            
+
+            //Debug.WriteLine($"yawEr: {yawError} altEr: {altitudeError} posEr: {posError}");
+
             return yawError < 2f && altitudeError < 0.2f && posError <= 1;
         }
     }
@@ -374,7 +376,7 @@ namespace HDCircles.Hackathon.Services
             // check the mission timeout
             if (null != mission)
             {
-                Debug.WriteLine($"mission {mission.Id} {mission.Type} is running...");
+                //Debug.WriteLine($"mission {mission.Id} {mission.Type} is running...");
 
                 // check the result of mission and return if it is already completed.
                 if (!mission.CheckIfCompleted())
