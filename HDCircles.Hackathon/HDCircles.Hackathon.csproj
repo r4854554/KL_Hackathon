@@ -122,6 +122,7 @@
     </Compile>
     <Compile Include="model.cs" />
     <Compile Include="Services\AutonomousFlight.cs" />
+    <Compile Include="Services\Controllers\LateralController.cs" />
     <Compile Include="Services\Controllers\YawController.cs" />
     <Compile Include="Services\UdpDebug.cs" />
     <Compile Include="Services\Commander.cs" />
