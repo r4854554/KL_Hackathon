@@ -9,7 +9,6 @@ using System.Threading;
 namespace HDCircles.Hackathon
 {
     public sealed class YawController
-
     {
          public YawController(double GainProportional, double GainIntegration, double GainDerivative)
         {
@@ -55,7 +54,7 @@ namespace HDCircles.Hackathon
             else if (error < -180)
                 error += 360;
             double errorToIntegration = Clamp(error, 10f, -10f);
-
+            
             this.StateIntegration += errorToIntegration;
             this.StateIntegration = Clamp(this.StateIntegration, 60, -60);
 

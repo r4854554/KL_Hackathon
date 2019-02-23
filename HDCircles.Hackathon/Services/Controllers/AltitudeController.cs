@@ -52,7 +52,7 @@ namespace HDCircles.Hackathon
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
             UdpDebug.Instance.SendUdpDebug(udpData);
 
-            Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable}, ProcessVarRate: {ProcessVariableRate}, Output: { output}");
+            //Debug.WriteLine($"Info:AltitudeController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable}, ProcessVarRate: {ProcessVariableRate}, Output: { output}");
             return output;
         }
 

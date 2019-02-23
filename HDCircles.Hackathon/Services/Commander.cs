@@ -88,8 +88,16 @@ namespace HDCircles.Hackathon.Services
                 return;
             }
 
-            missionTaskObj = Task();
-            missionTaskObj.Start();
+            try
+            {
+
+                missionTaskObj = Task();
+                missionTaskObj.Start();
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"mission {Id} - {Type}: {ex.ToString()}");
+            }
 
             //timer = new System.Timers.Timer(Timeout);
             //timer.Elapsed += Timer_Timeout;
@@ -100,7 +108,7 @@ namespace HDCircles.Hackathon.Services
         {
             Argument.IsNotNull(() => IsCompleted);
             
-            Logger.Instance.Log($"Checking mission {Id} {Type} is completed...");
+            Debug.WriteLine($"Checking mission {Id} {Type} is completed...");
 
             if (Result.HasValue)
                 return Result.Value;
@@ -109,7 +117,7 @@ namespace HDCircles.Hackathon.Services
 
             if (result)
             {
-                Logger.Instance.Log($"Mission {Id} {Type} is completed...");
+                Debug.WriteLine($"Mission {Id} {Type} is completed...");
 
                 if (null != timer && timer.Enabled)
                     timer.Stop();
@@ -192,17 +200,23 @@ namespace HDCircles.Hackathon.Services
         {
             var args = Args;
 
-            PositionController.Instance.YawSetpoint = args.Yaw;
+            //PositionController.Instance.YawSetpoint = args.Yaw;
+            FlightStacks.Instance._positionController.YawSetpoint = args.Yaw;
             PositionController.Instance.AltitudeSetpoint = args.Altitude;
             PositionController.Instance.RelativeXSetpoint = args.RelativeX;
             PositionController.Instance.RelativeYSetpoint = args.RelativeY;
-
-            Thread.Sleep(1000);
         }
 
         private bool IsCompleteExecute()
         {
-            return true;
+            var currentState = Drone.Instance.CurrentState;
+            var yaw = Args.Yaw;
+            var altitude = Args.Altitude;
+
+            var yawErr = Math.Abs(Drone.Instance.CurrentState.Yaw - yaw);
+            var altitudeErr = Math.Abs(Drone.Instance.CurrentState.Altitude - altitude);
+
+            return yawErr < 2f && altitudeErr < 0.2f;
         }
     }
 
@@ -281,7 +295,14 @@ namespace HDCircles.Hackathon.Services
                     continue;
                 }
 
-                ExecuteMission();
+                try
+                {
+                    ExecuteMission().Wait();
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine("commander: " + ex.ToString());
+                }
 
                 watch.Stop();
 
@@ -294,7 +315,12 @@ namespace HDCircles.Hackathon.Services
 
         private async Task ExecuteMission()
         {
-            var mission = currentMission;
+            var mission = default(Mission);
+
+            lock (stackLock)
+            {
+                mission = currentMission;
+            }
 
             // step 1. check if there is a mission begin executed
             // check the mission timeout
@@ -317,16 +343,15 @@ namespace HDCircles.Hackathon.Services
             }
 
             // step 2. pop a new mission
-
-            // no more mission, skip this cycle.
-            if (!activeMissionStasks.Any())
-            {
-                Logger.Instance.Log("empty mission stack...");
-                return;
-            }
-
             lock (stackLock)
             {
+                // no more mission, skip this cycle.
+                if (!activeMissionStasks.Any())
+                {
+                    Logger.Instance.Log("empty mission stack...");
+                    return;
+                }
+
                 mission = activeMissionStasks.Dequeue();
                 currentMission = mission;
             }
