@@ -69,6 +69,8 @@ namespace HDCircles.Hackathon.Services
                 _drone = Drone.Instance;
                 _positionController = PositionController.Instance;
 
+                var commander = Commander.Instance;
+
                 // add a background worker to perform regular tick
                 backgroundWorker = new BackgroundWorker();
                 backgroundWorker.DoWork += BackgroundWorker_Timing;

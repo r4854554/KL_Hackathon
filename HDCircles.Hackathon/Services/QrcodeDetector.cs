@@ -311,13 +311,13 @@
 
             if (isReg)
             {
-                List<String> labels = new List<String> { "Box", "Nobox" };
-                objectDetection = new ObjectDetection(labels, 10, 0.6F, 0.45F);
-                await init_onnx();
-                _isRunning = true;
+                //List<String> labels = new List<String> { "Box", "Nobox" };
+                //objectDetection = new ObjectDetection(labels, 10, 0.6F, 0.45F);
+                //await init_onnx();
+                //_isRunning = true;
 
-                Thread.Sleep(2000);
-                workerThread.Start();
+                //Thread.Sleep(2000);
+                //workerThread.Start();
             }
         }
         

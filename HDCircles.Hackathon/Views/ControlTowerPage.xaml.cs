@@ -124,7 +124,7 @@
             {
                 _isTakingOff = true;
                 DisableControls(false);
-                Commander.TakeOff();
+                Commander.AddTakeOffMission();
                 _isTakingOff = false;
                 EnableControls(false);
             }
@@ -151,7 +151,7 @@
             {
                 _isLanding = true;
                 DisableControls(false);
-                Commander.Landing();
+                Commander.AddLandingMission();
                 _isLanding = false;
                 EnableControls(false);
             }
@@ -179,7 +179,19 @@
 
                 var args = GetInputArgs();
 
-                Commander.SetPoint(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY);
+                Commander.AddSetPointMission(args.Yaw, args.Altitude, args.RelativeX, args.RelativeY);
+
+                EnableInputs();
+            }
+        }
+
+        private void StartMissionButton_Click(object sender, RoutedEventArgs e)
+        {
+            lock (_cmdLock)
+            {
+                DisableInputs();
+
+                // TODO: design the mission stack
 
                 EnableInputs();
             }
