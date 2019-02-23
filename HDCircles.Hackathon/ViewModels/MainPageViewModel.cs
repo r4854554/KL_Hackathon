@@ -89,7 +89,7 @@
             {
                 lock (indexLock)
                 {
-                    if (value != 0) { _averrageQrIndex = value; }
+                    if (value != 0.0) { _averrageQrIndex = value; }
                     
                 }
             }
@@ -868,8 +868,9 @@
                     bgraData.AsBuffer().CopyTo(LiveFrameSource.PixelBuffer);
 
                     LiveFrameSource.Invalidate();
-                    AverrageQrIndex = 0;
-                    AverrageQrCount = 0;
+                    var tempAverrageQrIndex = 0;
+                    var tempAverageQrCount = 0;
+                    
                     foreach (var result in pose.DetectResults)
                     {
                         //Debug.Print($"{ result.BarcodeText}\n");
@@ -883,16 +884,19 @@
                             var LocationTag = result.BarcodeText;
                             var pos = Regex.Match(result.BarcodeText, @"(.{2})\s*$"); ;
                             var num = Int32.Parse(pos.Value);
-                            
 
-                            AverrageQrIndex = AverrageQrIndex + num;
-                            AverrageQrCount += 1;
+                            tempAverrageQrIndex = tempAverrageQrIndex + num;
+                            //AverrageQrIndex = AverrageQrIndex + num;
+                            tempAverageQrCount += 1;
                             
                         }
-                        Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
-                        
                     }
 
+                    AverrageQrCount = tempAverageQrCount;
+                    AverrageQrIndex = tempAverrageQrIndex;
+                    //Debug.Print($"LocationTag: {ImageFrameCount} - { AverrageQrIndex}, {AverrageQrCount}, {AverrageQrIndex / AverrageQrCount} \n");
+                    if (AverrageQrCount > 0) { FlightStacks.Instance._positionController.CurrentIndex = AverrageQrIndex / AverrageQrCount; }
+                    
                     //#region by chriss. for debugging and tracing the current qrcode coordination
                     //var h = new Heuristic();
                     //if (results.Length >= 3)
@@ -1067,12 +1071,12 @@
                 case VirtualKey.PageDown:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(0.5);
-                    FlightStacks.Instance._positionController.YawSetpoint = 10;
+                    FlightStacks.Instance._positionController.TargetIndex = 13; // FlightStacks.Instance._positionController.CurrentIndex - 1;
                     break;
                 case VirtualKey.PageUp:
                     //Debug.WriteLine("Info:KeyDownExecute:Up");
                     //FlightStacks.Instance._positionController.SetYawStepCommand(-0.5);
-                    FlightStacks.Instance._positionController.YawSetpoint = -170;
+                    FlightStacks.Instance._positionController.TargetIndex = 14; // FlightStacks.Instance._positionController.TargetIndex + 1;
                     break;
             }
 

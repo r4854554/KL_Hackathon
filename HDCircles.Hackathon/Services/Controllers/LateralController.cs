@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -32,7 +33,7 @@ namespace HDCircles.Hackathon
 
             CurrentIndex = currentIndex;
             TargetIndex = targetIndex;
-
+            Debug.WriteLine($"Info:Lateral: Target: {TargetIndex},  Current: {CurrentIndex}");
             if (targetIndex < 1)
             {
                 return 0;
@@ -59,6 +60,7 @@ namespace HDCircles.Hackathon
             if (counter >= 10)
                 counter = 0;
 
+            Debug.WriteLine($"Info:Lateral: Target: {TargetIndex},  Current: {CurrentIndex}, Output: { output}");
             return output;
         }
 

@@ -130,8 +130,48 @@ namespace HDCircles.Hackathon
 
         // LeteralController
         public bool RightSide { get; set; } = true;
-        public double TargetIndex { get; set; } = 0;
-        public double CurrentIndex { get; set; } = 0;
+        private double _targetIndex; 
+        public double TargetIndex
+        {
+            get
+            {
+                lock (indexLock)
+                {
+                    return _targetIndex;
+                }
+            }
+            set
+            {
+                lock (indexLock)
+                {
+                    _targetIndex = value;
+                    Debug.Print($"Info:SetLateralIndexCommand: {value}");
+
+                }
+            }
+        } 
+
+        private object indexLock = new object();
+
+        private double _currentIndex;
+        public double CurrentIndex
+        {
+            get
+            {
+                lock (indexLock)
+                {
+                    return _currentIndex;
+                }
+            }
+            set
+            {
+                lock (indexLock)
+                {
+                    _currentIndex = value; 
+
+                }
+            }
+        }
 
         // constructor
         private static PositionController _instance;
@@ -181,7 +221,10 @@ namespace HDCircles.Hackathon
             double falseRate = 0.0;
             YawCmd = yawController.Update(yaw, falseRate);
             // update lateralController
-            RollCmd = lateralController.Update(CurrentIndex, TargetIndex, RightSide);
+
+            RollCmd = 0;
+            lateralController.Update(CurrentIndex, TargetIndex, RightSide);
+            //Debug.Print($"RollCmd: { }");
         }
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
         {
@@ -195,7 +238,7 @@ namespace HDCircles.Hackathon
 
         public void SetAltitudeStepCommand(double step)
         {
-           Debug.Print($"Info:SetAltitudeStepCommand: {step}");
+           
            AltitudeSetpoint = AltitudeSetpoint + step; 
         }
 
