@@ -65,7 +65,7 @@ namespace HDCircles.Hackathon
             var udpData = new double[]{ SetPoint, ProcessVariable, ProcessVariableRate, output };
             UdpDebug.Instance.SendUdpDebug(udpData);
 
-            Debug.WriteLine($"Info:YawController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable} , Output: {output}");
+            //Debug.WriteLine($"Info:YawController: Setpoint: {SetPoint},  ProcessVar: {ProcessVariable} , Output: {output}");
             return output;
         }
 
