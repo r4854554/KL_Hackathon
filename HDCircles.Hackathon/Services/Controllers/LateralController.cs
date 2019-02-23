@@ -27,6 +27,9 @@ namespace HDCircles.Hackathon
             double output = 0;
             double error = targetIndex - currentIndex;
 
+            if(currentIndex < 1)
+                return 0;
+
             CurrentIndex = currentIndex;
             TargetIndex = targetIndex;
 
