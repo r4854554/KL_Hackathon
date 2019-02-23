@@ -37,7 +37,7 @@ namespace HDCircles.Hackathon.Services
         // constant parameter
         private const double STATETIMER_UPDATE_FREQUENCE = 100; // 10Hz
         private long updateInterval = 100L;                     // milliseconds
-        private double ControlValueDeadzone = 0.05;     // any control less this value will be ignored
+        private double ControlValueDeadzone = 0.01;     // any control less this value will be ignored
 
         // flags
         private bool _isInitialised = false;

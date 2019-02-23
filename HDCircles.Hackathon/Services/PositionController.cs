@@ -11,7 +11,7 @@ namespace HDCircles.Hackathon
         YawController yawController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
-        private const double Gain_p_yaw = 0.075;
+        private const double Gain_p_yaw = 0.05;
         private const double Gain_i_yaw = 0.0001;
         private const double Gain_d_yaw = 0;
 
