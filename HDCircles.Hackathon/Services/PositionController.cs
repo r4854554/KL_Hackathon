@@ -8,7 +8,7 @@ namespace HDCircles.Hackathon
     public class PositionController
     {
         AltitudeController altitudeController;
-        YawController yawController;
+        public YawController yawController;
         LateralController lateralController;
         private const double Gain_p_alt = 0.8;
         private const double Gain_d_alt = 0.5;
@@ -228,7 +228,9 @@ namespace HDCircles.Hackathon
 
 
             RollCmd = lateralController.Update(CurrentIndex, TargetIndex, RightSide);
-            Debug.Print($"RollCmd: {RollCmd} {CurrentIndex} {TargetIndex}");
+            Debug.WriteLine($"RollCmd: {RollCmd} {CurrentIndex} {TargetIndex}");
+
+            PitchController();
         }
 
         public void Start(double roll, double pitch, double yaw, double altitude,double vx, double vy, double vz)
@@ -237,19 +239,30 @@ namespace HDCircles.Hackathon
             altitudeController.Start(defaultTakeoffAltitude, altitude, vz);
             AltitudeSetpoint = defaultTakeoffAltitude;
             yawController.Start(yaw, yaw, 0.0);
-            YawSetpoint = yaw;
+            //YawSetpoint = yaw;
             lateralController.Start();
         }
 
         public void SetAltitudeStepCommand(double step)
         {
-            AltitudeSetpoint = AltitudeSetpoint + step; 
+            AltitudeSetpoint = AltitudeSetpoint + step;
+            //lock (_altitudeSetpointLock)
+            //{
+            //    altitudeSetpoint = altitudeSetpoint + step;
+            //    altitudeController.SetPoint = altitudeSetpoint;
+            //}
         }
 
 	    public void SetYawStepCommand(double step)
         {
             //Debug.Print($"Info:SetYawStepCommand: {step}");
-            YawSetpoint = YawSetpoint + step; 
+            YawSetpoint = YawSetpoint + step;
+
+            //lock (_yawSetpointLock)
+            //{
+            //    yawSetpoint = yawSetpoint + step;
+            //    yawController.SetPoint = yawSetpoint;
+            //}
         }
         
         public double GetLateralCurrentIndex()
@@ -257,5 +270,21 @@ namespace HDCircles.Hackathon
             return lateralController.CurrentIndex;
         }
 
+        private void PitchController()
+        {
+            if(RelativeXSetpoint > 0)
+            {
+                PitchCmd = PitchStepCmd;
+                RelativeXSetpoint = RelativeXSetpoint - 1;
+            }
+            else
+            {
+                PitchCmd = 0;
+            }
+        }
+
+        public double PitchStepCmd { get; set; } = 0.5;
+
     }
+
 }

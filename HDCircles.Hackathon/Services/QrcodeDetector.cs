@@ -28,6 +28,20 @@
             Frame = frame;
             Results = results;
         }
+
+
+    }
+
+    public struct ResultLists
+    {
+        public List<string> LocationList { get; }
+        public List<List<string> >CartonList { get;}
+
+        public ResultLists(List<string> location, List<List<string> > carton)
+        {
+            LocationList = location;
+            CartonList = carton;
+        }
     }
 
     public delegate void QrcodeDetectHandler(QrcodeDetection qrcode);
@@ -40,7 +54,7 @@
 
         private object updateLock = new object();
 
-        private long WorkFrequence = 250L;
+        private long WorkFrequence = 1000L;
 
         private Thread workerThread;
 
@@ -85,7 +99,7 @@
             {
                 watch.Restart();
 
-                //ScanFrame().Wait();
+                ScanFrame().Wait();
 
                 watch.Stop();
 
@@ -230,19 +244,26 @@
                     {
                         QrcodeDetected.Invoke(qrcode);
                     }
+
+                    //var results = new ResultLists(ResultLocation, ResultCarton);
+                    //if (null != QrcodeDetected)
+                    //{
+                    //    ResultLists.Invoke(qrcode);
+                    //}
                 }
             }
             catch (Exception ex)
             {
-                lock (updateLock)
-                {
-                    var qrcode = new QrcodeDetection(ex.Message, frame);
+                //lock (updateLock)
+                //{
+                //    var qrcode = new QrcodeDetection(ex.Message, frame);
 
-                    if (null != QrcodeDetected)
-                    {
-                        QrcodeDetected.Invoke(qrcode);
-                    }
-                }
+                //    if (null != QrcodeDetected)
+                //    {
+                //        QrcodeDetected.Invoke(qrcode);
+                //    }
+                //}
+                //Debug.WriteLine($"qrcode: {ex.ToString()}");
                 return -1;
             }
             return returncode;
@@ -313,21 +334,28 @@
             {
                 List<String> labels = new List<String> { "Box", "Nobox" };
                 objectDetection = new ObjectDetection(labels, 10, 0.45F, 0.45F);
-                //await init_onnx();
+                await init_onnx();
                 var gimbal = await DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).GetGimbalAttitudeAsync();
                 if (gimbal.value == null || gimbal.value.Value.pitch == 0)
                 {
-                    var err0r1 = DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).RotateByAngleAsync(new GimbalAngleRotation
-                    {
-                        mode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
-                        pitch = -16.9,
-                        roll = 0,
-                        yaw = 0,
-                        pitchIgnored = false,
-                        rollIgnored = true,
-                        yawIgnored = true,
-                        duration = 1.0
-                    });
+                    //for (; ; )
+                    //{
+                        var err0r1 = DJISDKManager.Instance.ComponentManager.GetGimbalHandler(0, 0).RotateByAngleAsync(new GimbalAngleRotation
+                        {
+                            mode = GimbalAngleRotationMode.ABSOLUTE_ANGLE,
+                            pitch = -16.9,
+                            roll = 0,
+                            yaw = 0,
+                            pitchIgnored = false,
+                            rollIgnored = true,
+                            yawIgnored = true,
+                            duration = 1.0
+                        });
+                    //    if (err0r1.Result == SDKError.NO_ERROR)
+                    //    {
+                    //        break;
+                    //    }
+                    //}
                 }
                 _isRunning = true;
                     

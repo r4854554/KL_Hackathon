@@ -197,6 +197,8 @@ namespace HDCircles.Hackathon.Services
 
     public sealed class SetPointMission: Mission
     {
+        public bool IsFirst { get; set; }
+
         public SetPointMission()
         {
             Type = MissionType.SetPoint;
@@ -212,7 +214,7 @@ namespace HDCircles.Hackathon.Services
             
             PositionController.Instance.YawSetpoint = args.Yaw;
             PositionController.Instance.AltitudeSetpoint = args.Altitude;
-            //PositionController.Instance.RelativeXSetpoint = args.RelativeX;
+            PositionController.Instance.RelativeXSetpoint = args.RelativeX;
             //PositionController.Instance.RelativeYSetpoint = args.RelativeY;
 
             PositionController.Instance.TargetIndex = args.PositionId;
@@ -223,13 +225,24 @@ namespace HDCircles.Hackathon.Services
         {
             var currentState = Drone.Instance.CurrentState;
             var currentIndex = PositionController.Instance.GetLateralCurrentIndex();
-            var yawError = Math.Abs(currentState.Yaw - Args.Yaw);
+            var yawError = Math.Abs(FlightStacks.Instance._positionController.yawController.ProcessVariable - Args.Yaw);
             var altitudeError = Math.Abs(currentState.Altitude - Args.Altitude);
             var posError = Math.Abs(currentIndex - Args.PositionId);
+            var pitchMove = PositionController.Instance.RelativeXSetpoint > 0;
 
-            //Debug.WriteLine($"yawEr: {yawError} altEr: {altitudeError} posEr: {posError}");
+            if (IsFirst)
+            {
+                yawError = 0;
+            }
 
-            return yawError < 2f && altitudeError < 0.2f && posError <= 1;
+            if(Args.PositionId < 1)
+            {
+                posError = 0;
+            }
+
+            Debug.WriteLine($"yawEr: {yawError} altEr: {altitudeError} posEr: {posError}");
+
+            return /*yawError < 2f &&*/ altitudeError < 0.2f && posError <= 1 && !pitchMove;
         }
     }
 
@@ -284,7 +297,7 @@ namespace HDCircles.Hackathon.Services
 
         private Thread workerThread;
 
-        private long WorkerFrequence = 50L;
+        private long WorkerFrequence = 250L;
 
         private bool isSdkRegistered;
 
@@ -488,14 +501,16 @@ namespace HDCircles.Hackathon.Services
             float relativeXSetpoint, 
             float relativeYSetpoint,
             int posId,
-            bool isRightSide)
+            bool isRightSide,
+            bool isFirst = false)
         {
             var id = GetNextId();
 
             var mission = new SetPointMission
             {
                 Id = id,
-                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, posId, isRightSide)
+                Args = new MissionArgs(yawSetpoint, altitudeSetpoint, relativeXSetpoint, relativeYSetpoint, posId, isRightSide),
+                IsFirst = isFirst
             };
 
             AddMission(mission);

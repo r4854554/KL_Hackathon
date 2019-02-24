@@ -82,7 +82,7 @@ namespace HDCircles.Hackathon
             }
         }
 
-
+        object lockNew = new object();
         /// <summary>
         /// The current value
         /// </summary>
@@ -91,8 +91,12 @@ namespace HDCircles.Hackathon
             get { return processVariable; }
             set
             {
-                //ProcessVariableLast = processVariable;
-                processVariable = value;
+                //processVariable = value;
+                lock (lockNew)
+                {//ProcessVariableLast = processVariable;
+                    processVariable = value;
+                }
+
             }
         }
         /// <summary>

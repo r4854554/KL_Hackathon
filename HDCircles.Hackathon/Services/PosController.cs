@@ -70,7 +70,7 @@ namespace HDCircles.Hackathon
 
         private object updateLock = new object();
 
-        private long WorkFrequence = 250L;
+        private long WorkFrequence = 1000L;
 
         private bool _isRunning;
 
